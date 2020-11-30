@@ -1,6 +1,7 @@
 import sys, csv, os
 import math, random
 import z3
+from pm4py.objects.log.importer.xes import importer as xes_importer
 
 #########
 # UTILS #
@@ -76,8 +77,26 @@ class RuleSynth:
     """
     Synthetize rules from runs of an POMCP algorithm
     """
-    def __init__(self, folder, threshold, rules):
-        self.folder = folder
+
+    # OLD TRACES
+    #def __init__(self, folder, threshold, rules):
+    #    self.folder = folder
+    #    self.threshold = threshold
+    #    self.rules = rules
+
+    #    self.segments_in_runs = []
+    #    self.actions_in_runs = []
+    #    self.belief_in_runs = []
+    #    self.run_folders = []
+    #    self.parse_folder(self.folder)
+
+    #    self.solver = z3.Optimize()
+    #    self.thresholds  = [[] for i in range(len(rules))]
+    #    self.soft_constr = [[] for i in range(len(rules))]
+
+    # XES TRACES
+    def __init__(self, xes_log, threshold, rules):
+        self.xes_log = xes_log
         self.threshold = threshold
         self.rules = rules
 
@@ -85,7 +104,7 @@ class RuleSynth:
         self.actions_in_runs = []
         self.belief_in_runs = []
         self.run_folders = []
-        self.parse_folder(self.folder)
+        self.parse_xes(self.xes_log)
 
         self.solver = z3.Optimize()
         self.thresholds  = [[] for i in range(len(rules))]
@@ -129,6 +148,39 @@ class RuleSynth:
                 self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
                 for belief, particles in step.items():
                     self.belief_in_runs[-1][-1][(belief//(3**(8-self.segments_in_runs[-1][num]-1)))%3] += particles
+                total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
+                self.belief_in_runs[-1][-1][0] /= total
+                self.belief_in_runs[-1][-1][1] /= total
+                self.belief_in_runs[-1][-1][2] /= total
+
+    def parse_xes(self, xes):
+        """
+        Parse xes log and build data from traces
+        """
+        log = xes_importer.apply(xes)
+
+        for trace in log:
+            # FIXME: this is probably redundant in xes
+            self.run_folders.append("run {}".format(trace.attributes["run"]))
+
+            # each xes trace is a POMCP's run
+            self.segments_in_runs.append([])
+            self.actions_in_runs.append([])
+            self.belief_in_runs.append([])
+
+            for event in trace:
+                # attributes
+                segment = event['segment']
+                self.segments_in_runs[-1].append(segment)
+                action = event['action']
+                self.actions_in_runs[-1].append(action)
+
+                # belief
+                self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
+                for state, particles in event['belief']['children'].items():
+                    local_difficulty = (int(state) // (3 ** (7 - segment))) % 3
+                    self.belief_in_runs[-1][-1][local_difficulty] += particles
+
                 total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
                 self.belief_in_runs[-1][-1][0] /= total
                 self.belief_in_runs[-1][-1][1] /= total
@@ -395,13 +447,13 @@ class RuleSynth:
 if __name__ == "__main__":
     # parse input files
     if len(sys.argv) != 2:
-        print ('usage: rule_synthesis <runs_folder>')
+        print ('usage: xpomcp <log.xes>')
         exit()
 
-    runs_folder = str(sys.argv[1])
+    xes_log = str(sys.argv[1])
 
     rs = RuleSynth(
-            folder=runs_folder,
+            xes_log=xes_log,
             threshold=0.1,
             rules=[
                 SpeedRule(
