@@ -122,7 +122,7 @@ class RuleSynth:
                             state, particles = entry.split(':')
                             belief_map[-1][int(state)] = int(particles)
 
-            # !!!!!!!!!!!!!!!!!!!DA CHIEDERE!!!!!!!!
+            
             # compute the local belief (diff function)
             self.belief_in_runs.append([])
             for num, step in enumerate(belief_map):
@@ -157,7 +157,7 @@ class RuleSynth:
 
         # hard constraint, they must be be specified by hand in this version
         # e.g: x_1 >= 0.9
-        #DA CHIEDERE, C'è UN ALTRO MODO???????????????? 
+        
         if rule_num == 0: 
             self.solver.add(self.thresholds[0][0][0] >= 0.70)
 
