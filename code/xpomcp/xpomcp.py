@@ -122,6 +122,7 @@ class RuleSynth:
                             state, particles = entry.split(':')
                             belief_map[-1][int(state)] = int(particles)
 
+            # !!!!!!!!!!!!!!!!!!!DA CHIEDERE!!!!!!!!
             # compute the local belief (diff function)
             self.belief_in_runs.append([])
             for num, step in enumerate(belief_map):
@@ -156,13 +157,18 @@ class RuleSynth:
 
         # hard constraint, they must be be specified by hand in this version
         # e.g: x_1 >= 0.9
-        self.solver.add(self.thresholds[rule_num][0][0] >= 0.9)
+        #DA CHIEDERE, C'è UN ALTRO MODO???????????????? 
+        if rule_num == 0: 
+            self.solver.add(self.thresholds[0][0][0] >= 0.70)
+
+        if rule_num == 1: 
+            self.solver.add(self.thresholds[1][0][2] >= 0.70)
 
         # build soft clauses
         for run in range(len(self.belief_in_runs)):
             t = self.thresholds[rule_num]
             for bel, belief in enumerate(self.belief_in_runs[run]):
-                # generate boolean var for soft constraints
+                # generate boolean var for soft constraints 
                 soft = z3.Bool('b_{}_{}_{}'.format(rule_num, run, bel))
                 self.soft_constr[rule_num].append(DummyVar(soft, rule_num, run, bel))
 
@@ -171,17 +177,20 @@ class RuleSynth:
                 for c in range(len(rule.constraints)):
                     subrule = []
                     for i in rule.constraints[c].greater_equal:
-                        subrule.append(belief[i] >= t[c][i])
+                        subrule.append(belief[i] >= t[c][i]) #100 > x1 (esempio) ogni belief è preso da uno step, x1 deve essere soddisfatta per tutti gli step 
                     for i in rule.constraints[c].lower_equal:
                         subrule.append(belief[i] <= t[c][i])
                     subrules.append(z3.And(subrule))
 
-                formula = z3.Or(subrules)
+                formula = z3.Or(subrules) #ho più modi per soddisfare queste regole. 
 
-                if self.actions_in_runs[run][bel] in rule.speeds:
-                    self.solver.add(z3.Or(soft, formula))
-                else:
-                    self.solver.add(z3.Or(soft, z3.Not(formula)))
+                
+                #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla. 
+                if self.actions_in_runs[run][bel] not in rule.speeds: #vedo se l'azione scelta viene rispettata dal bielef
+                    formula = z3.Not(formula) 
+
+                self.solver.add(z3.Or(soft, formula)) #può essere risolto dall cheat (soft) oppure dalla formula. 
+                
 
         # solve MAX-SMT problem
         low_threshold = 0
@@ -189,12 +198,14 @@ class RuleSynth:
         high_threshold = len(self.soft_constr[rule_num])
         final_threshold = -1
         best_model = []
+
+        #uso una ricerca binaria per risolvere l'or gigante definito sopra!
         while low_threshold <= high_threshold:
-            self.solver.push()
+            self.solver.push() #risolutore incrementale, consente di evitare di rifare calcoli creando un ambiente virtuale 
 
             threshold = (low_threshold + high_threshold) // 2
-
-            self.solver.add(z3.PbLe([(soft.literal, 1) for soft in self.soft_constr[rule_num]], threshold))
+            #Pble pseudo boolean less equal 
+            self.solver.add(z3.PbLe([(soft.literal, 1) for soft in self.soft_constr[rule_num]], threshold)) #l'add viene fatto sull'ambiente virtuale appena creato. 
             result = self.solver.check()
             if result == z3.sat:
                 final_threshold = threshold
@@ -206,6 +217,7 @@ class RuleSynth:
 
         print('fail to satisfy {} steps out of {}'.format(final_threshold, total_soft_constr))
         # return a model that satisfy all the hard clauses and the maximum number of soft clauses
+        # print(best_model)
         return best_model
 
     def print_rule_result(self, rule_num, model):
@@ -252,6 +264,7 @@ class RuleSynth:
                 self.solver.add(z3.Not(soft.literal))
 
         # try to optimize intervals
+        # cerco di trovare i numeri più grandi che soddisfano la regola. 
         interval_cost = z3.Real('interval_cost')
         cost = []
         for j, const in enumerate(self.rules[rule_num].constraints):
@@ -259,6 +272,7 @@ class RuleSynth:
                 cost.append(self.thresholds[rule_num][j][k])
             for k in const.lower_equal:
                 cost.append(-self.thresholds[rule_num][j][k])
+               
         total_cost = z3.Sum(cost)
         self.solver.add(interval_cost == total_cost)
         self.solver.minimize(interval_cost)
@@ -266,14 +280,17 @@ class RuleSynth:
         # check if SAT or UNSAT
         print('Check Formulas')
         result = self.solver.check()
+        # print(result)
 
         m = self.solver.model()
         # remove intervall optimization requirements
         self.solver.pop()
 
         # exit if unsat
+        #in teoria non potrebbe mai essere unsat perchè l'abbiamo già risolto prima, ora abbiamo spostato solo le threshold. 
+        #se è unsat mi dovrebbe dare delle prove. (NON guardare i log)
         if result != z3.sat:
-            print("no rule for speed 2")
+            print("IMPOSSIBLE TO SATISFY, ):")
             return
 
         # print results
@@ -282,6 +299,7 @@ class RuleSynth:
         # generate 1000 random points inside the rule
         rule_points = []
         generated_points = 0
+        #crei dei punti perchè potrei non aver visto tutti i casi strani dalle traccie. 
         while generated_points < 1000:
             point = [ 0.0, 0.0, 0.0 ]
             point[0] = random.uniform(0.0, 1.0)
@@ -315,27 +333,48 @@ class RuleSynth:
                 generated_points += 1
 
         # Hellinger distance of unsatisfiable steps
-        failed_rules = []
+        failed_rules_diff_action = []
         Hellinger_min = []
+        failed_step_counter = 0
         for num, soft in enumerate(self.soft_constr[rule_num]):
             if m[soft.literal] == False or not (self.actions_in_runs[soft.run][soft.step] in self.rules[rule_num].speeds) :
                 continue
-            failed_rules.append(num)
+            failed_rules_diff_action.append(num)
             P = [ self.belief_in_runs[soft.run][soft.step][0], self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2] ]
             hel_dst = [Hellinger_distance(P, Q) for Q in rule_points]
             Hellinger_min.append(min(hel_dst))
 
         # print unsatisfiable steps in decreasing order of hellinger distance
-        print('Unsatisfiable steps:')
-        anomaly_positions = []
-        for soft, hel, pos in [[self.soft_constr[rule_num][x], h, self.soft_constr[rule_num][x].run*35 + self.soft_constr[rule_num][x].step] for h, x in sorted(zip(Hellinger_min, failed_rules), key=lambda pair: pair[0], reverse = True)]:
+        print('Unsatisfiable steps same action:')
+        #anomaly_positions = []
+        for soft, hel in [[self.soft_constr[rule_num][x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
+            print("({})".format(failed_step_counter),end='')
             if hel > self.threshold:
                 print('ANOMALY: ', end='')
+                
             print('run {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f} --- Hellinger = {}'.format(
                 self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
                 self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2], hel))
-            if hel > self.threshold:
-                anomaly_positions.append(pos)
+            failed_step_counter += 1 
+            # if hel > self.threshold:
+            #     anomaly_positions.append(pos)
+
+        failed_steps_same_action = []
+        for num, soft in enumerate(self.soft_constr[rule_num]):
+            if m[soft.literal] == False or (self.actions_in_runs[soft.run][soft.step] in self.rules[rule_num].speeds) :
+                continue
+            failed_steps_same_action.append(soft)
+
+        # print unsatisfiable steps in decreasing order of hellinger distance
+        if len(failed_steps_same_action) > 0: 
+            print('Unsatisfiable steps different action:')
+        #anomaly_positions = []
+        for soft in failed_steps_same_action:
+            
+            print('({}) run {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f}'.format(failed_step_counter,
+                self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
+                self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2]))
+            failed_step_counter += 1
 
     def synthetize_rules(self):
         """
@@ -346,6 +385,7 @@ class RuleSynth:
             model = self.find_max_satisfiable_rule(rule)
             self.synthetize_rule(rule, model)
             self.solver.pop()
+            print()
 
 
 ########
@@ -362,17 +402,46 @@ if __name__ == "__main__":
 
     rs = RuleSynth(
             folder=runs_folder,
-            threshold=0.10,
+            threshold=0.1,
             rules=[
                 SpeedRule(
                     speeds=[2],
                     constraints = [
                         SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
                         SpeedRuleConstraints(greater_equal=[],     lower_equal=[2]),
-                        SpeedRuleConstraints(greater_equal=[0, 1], lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[0, 1],  lower_equal=[])
+                        ]
+                    ),
+
+                    SpeedRule(
+                    speeds=[0],
+                    constraints = [
+                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
+                        ]
+                    ),
+
+                    SpeedRule(
+                    speeds=[0,1],
+                    constraints = [
+                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
+                        ]
+                    ),
+
+                    SpeedRule(
+                    speeds=[1],
+                    constraints = [
+                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
+                        SpeedRuleConstraints(greater_equal=[], lower_equal=[1]),
+                        SpeedRuleConstraints(greater_equal=[], lower_equal=[2])
                         ]
                     )
+
                 ]
             )
+    
     rs.synthetize_rules()
 
