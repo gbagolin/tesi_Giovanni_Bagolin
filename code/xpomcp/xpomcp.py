@@ -2,6 +2,7 @@ import sys, csv, os
 import math, random
 import z3
 from pm4py.objects.log.importer.xes import importer as xes_importer
+from Problem import Problem
 # TODO alternativo: vedere se c'è di meglio di pm4py :-)
 
 #########
@@ -31,19 +32,6 @@ def to_real(x):
 #############################
 # VELOCITY REGULATION RULES #
 #############################
-
-class DummyVar:
-    """
-    Class that represent a dummy variable introduced by the MAX-SMT step.
-    It contains the literal (a Boolean variable) that identify the dummy
-    variable inside the SMT problem and the the information related to wich
-    rule, run and step is codified by the variable.
-    """
-    def __init__(self, literal, rule, run, step):
-        self.literal = literal
-        self.rule = rule
-        self.run = run
-        self.step = step
 
 class SpeedRule:
     """
@@ -107,52 +95,12 @@ class RuleSynth:
         self.run_folders = []
         self.parse_xes(self.xes_log)
 
+        self.problem = None
+
         self.solver = z3.Optimize()
         self.thresholds  = [[] for i in range(len(rules))]
         self.soft_constr = [[] for i in range(len(rules))]
 
-    # def parse_folder(self, folder):
-    #     """
-    #     Parse folder and build information from runs
-    #     """
-    #     print('Import experiments')
-    #     for subdir, dirs, files in os.walk(runs_folder):
-    #         dirs.sort()
-    #         if sorted(files) != ['beliefsPerStep.csv', 'policyPerStep.txt', 'stateEvolution.csv']:
-    #             # not a run, skip
-    #             continue
-
-    #         self.run_folders.append(subdir)
-    #         with open(os.path.join(subdir, 'stateEvolution.csv')) as csv_file:
-    #             csv_reader = csv.reader(csv_file, delimiter=',')
-    #             for i, row in enumerate(csv_reader):
-    #                 if i == 1:
-    #                     self.segments_in_runs.append([int(x) for x in row[1:]])
-    #                 if i == 8:
-    #                     self.actions_in_runs.append([int(x) for x in row[1:]])
-
-    #         # collect the belief at each step
-    #         belief_map = []
-    #         with open(os.path.join(subdir, 'beliefsPerStep.csv')) as bps:
-    #             csv_reader = csv.reader(bps, delimiter=',')
-    #             for row in csv_reader:
-    #                 belief_map.append({});
-    #                 for entry in row:
-    #                     if entry and not entry.isspace():
-    #                         state, particles = entry.split(':')
-    #                         belief_map[-1][int(state)] = int(particles)
-
-            
-    #         # compute the local belief (diff function)
-    #         self.belief_in_runs.append([])
-    #         for num, step in enumerate(belief_map):
-    #             self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
-    #             for belief, particles in step.items():
-    #                 self.belief_in_runs[-1][-1][(belief//(3**(8-self.segments_in_runs[-1][num]-1)))%3] += particles
-    #             total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
-    #             self.belief_in_runs[-1][-1][0] /= total
-    #             self.belief_in_runs[-1][-1][1] /= total
-    #             self.belief_in_runs[-1][-1][2] /= total
 
     def parse_xes(self, xes):
         """
@@ -187,6 +135,10 @@ class RuleSynth:
                 self.belief_in_runs[-1][-1][0] /= total
                 self.belief_in_runs[-1][-1][1] /= total
                 self.belief_in_runs[-1][-1][2] /= total
+
+        self.problem = Problem(beliefs=self.belief_in_runs,actions=self.actions_in_runs)
+
+        
 
     def find_max_satisfiable_rule(self, rule_num):
         """
