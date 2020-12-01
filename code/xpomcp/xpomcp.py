@@ -111,48 +111,48 @@ class RuleSynth:
         self.thresholds  = [[] for i in range(len(rules))]
         self.soft_constr = [[] for i in range(len(rules))]
 
-    def parse_folder(self, folder):
-        """
-        Parse folder and build information from runs
-        """
-        print('Import experiments')
-        for subdir, dirs, files in os.walk(runs_folder):
-            dirs.sort()
-            if sorted(files) != ['beliefsPerStep.csv', 'policyPerStep.txt', 'stateEvolution.csv']:
-                # not a run, skip
-                continue
+    # def parse_folder(self, folder):
+    #     """
+    #     Parse folder and build information from runs
+    #     """
+    #     print('Import experiments')
+    #     for subdir, dirs, files in os.walk(runs_folder):
+    #         dirs.sort()
+    #         if sorted(files) != ['beliefsPerStep.csv', 'policyPerStep.txt', 'stateEvolution.csv']:
+    #             # not a run, skip
+    #             continue
 
-            self.run_folders.append(subdir)
-            with open(os.path.join(subdir, 'stateEvolution.csv')) as csv_file:
-                csv_reader = csv.reader(csv_file, delimiter=',')
-                for i, row in enumerate(csv_reader):
-                    if i == 1:
-                        self.segments_in_runs.append([int(x) for x in row[1:]])
-                    if i == 8:
-                        self.actions_in_runs.append([int(x) for x in row[1:]])
+    #         self.run_folders.append(subdir)
+    #         with open(os.path.join(subdir, 'stateEvolution.csv')) as csv_file:
+    #             csv_reader = csv.reader(csv_file, delimiter=',')
+    #             for i, row in enumerate(csv_reader):
+    #                 if i == 1:
+    #                     self.segments_in_runs.append([int(x) for x in row[1:]])
+    #                 if i == 8:
+    #                     self.actions_in_runs.append([int(x) for x in row[1:]])
 
-            # collect the belief at each step
-            belief_map = []
-            with open(os.path.join(subdir, 'beliefsPerStep.csv')) as bps:
-                csv_reader = csv.reader(bps, delimiter=',')
-                for row in csv_reader:
-                    belief_map.append({});
-                    for entry in row:
-                        if entry and not entry.isspace():
-                            state, particles = entry.split(':')
-                            belief_map[-1][int(state)] = int(particles)
+    #         # collect the belief at each step
+    #         belief_map = []
+    #         with open(os.path.join(subdir, 'beliefsPerStep.csv')) as bps:
+    #             csv_reader = csv.reader(bps, delimiter=',')
+    #             for row in csv_reader:
+    #                 belief_map.append({});
+    #                 for entry in row:
+    #                     if entry and not entry.isspace():
+    #                         state, particles = entry.split(':')
+    #                         belief_map[-1][int(state)] = int(particles)
 
             
-            # compute the local belief (diff function)
-            self.belief_in_runs.append([])
-            for num, step in enumerate(belief_map):
-                self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
-                for belief, particles in step.items():
-                    self.belief_in_runs[-1][-1][(belief//(3**(8-self.segments_in_runs[-1][num]-1)))%3] += particles
-                total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
-                self.belief_in_runs[-1][-1][0] /= total
-                self.belief_in_runs[-1][-1][1] /= total
-                self.belief_in_runs[-1][-1][2] /= total
+    #         # compute the local belief (diff function)
+    #         self.belief_in_runs.append([])
+    #         for num, step in enumerate(belief_map):
+    #             self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
+    #             for belief, particles in step.items():
+    #                 self.belief_in_runs[-1][-1][(belief//(3**(8-self.segments_in_runs[-1][num]-1)))%3] += particles
+    #             total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
+    #             self.belief_in_runs[-1][-1][0] /= total
+    #             self.belief_in_runs[-1][-1][1] /= total
+    #             self.belief_in_runs[-1][-1][2] /= total
 
     def parse_xes(self, xes):
         """
@@ -410,7 +410,7 @@ class RuleSynth:
             if hel > self.threshold:
                 print('ANOMALY: ', end='')
                 
-            print('run {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f} --- Hellinger = {}'.format(
+            print('{} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f} --- Hellinger = {}'.format(
                 self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
                 self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2], hel))
             failed_step_counter += 1 
@@ -429,7 +429,7 @@ class RuleSynth:
         #anomaly_positions = []
         for soft in failed_steps_same_action:
             
-            print('({}) run {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f}'.format(failed_step_counter,
+            print('({}) {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f}'.format(failed_step_counter,
                 self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
                 self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2]))
             failed_step_counter += 1
