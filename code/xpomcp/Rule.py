@@ -18,11 +18,40 @@ class Rule:
         self.solver.add(x <= 1.0)
         return x
     
-    def addConstraint(self,*args):
+    def addConstraint(self,*formula):
         '''
         Create a z3 formula representing a constraint given a formula. 
         '''
-        return z3.And(args)
+        formula = list(formula)
+        #print(formula)
+        variablesInFormula = set()
+        #set probabilities limits for free variables in args
+        for subFormula in formula:
+            for variable in subFormula.children(): 
+                #check if variable is a variable (not a constant)
+                if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED: 
+                    variablesInFormula.add(variable)
+
+        prob_sum = z3.Sum(variablesInFormula)
+        self.solver.add(prob_sum == 1.0)
+
+        return z3.And(formula)
+
+
+    def addFormula(self,*formula):
+        '''
+        Assign the z3 formula that will be processed by the optimizer 
+        '''
+        formula = list(formula)
+        self.formula = z3.Or(formula)
+    
+    def findMaxSmtInRule(self): 
+        print("Solving MAX-SMT problem")
+        self.solver.check()
+        model = self.solver.model()
+        print(model)
+
+
 
 
 
