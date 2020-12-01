@@ -2,6 +2,7 @@ import sys, csv, os
 import math, random
 import z3
 from pm4py.objects.log.importer.xes import importer as xes_importer
+# TODO alternativo: vedere se c'è di meglio di pm4py :-)
 
 #########
 # UTILS #
@@ -178,6 +179,7 @@ class RuleSynth:
                 # belief
                 self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
                 for state, particles in event['belief']['children'].items():
+                    # TODO 5 (far future): generalizzare anche questo, che sono i rs.p0()...
                     local_difficulty = (int(state) // (3 ** (7 - segment))) % 3
                     self.belief_in_runs[-1][-1][local_difficulty] += particles
 
@@ -197,6 +199,7 @@ class RuleSynth:
         for c in range(len(rule.constraints)): # constraint in rule
             self.thresholds[rule_num].append([None, None, None])
             for s in range(3): # state in constraint
+                # TODO 1: questo va tolto e spostato/generalizzato fuori
                 t = z3.Real('t_r{}_c{}_state{}'.format(rule_num, c, s))
                 self.thresholds[rule_num][c][s] = t
                 # each threshold is a probability and must have a value
@@ -210,6 +213,9 @@ class RuleSynth:
         # hard constraint, they must be be specified by hand in this version
         # e.g: x_1 >= 0.9
         
+        # TODO 3: usare le variabili dichiarate per esprimere hard-constraint
+        # e.g. rs.add_hard_constraint(x >= 0.7)
+        # TODO 4: rimuovere codice specifico del problema di velocity regulation come la stampa, generazione di punti ecc
         if rule_num == 0: 
             self.solver.add(self.thresholds[0][0][0] >= 0.70)
 
@@ -452,10 +458,15 @@ if __name__ == "__main__":
 
     xes_log = str(sys.argv[1])
 
+    # TODO 1: dichiarare variabili prima di usarle
+    # e.g x = rs.declare_var("x")
+    #     y = rs.declare_var("y")
     rs = RuleSynth(
             xes_log=xes_log,
             threshold=0.1,
             rules=[
+                # TODO 2: usare le dichiarazioni per esprimere questi concetti
+                # e.g.: z3.and(x > rs.p0(), y < rs.p2())
                 SpeedRule(
                     speeds=[2],
                     constraints = [
