@@ -1,8 +1,9 @@
 import z3
-from DummyVar import DummyVar
 import math
-from Problem import Problem
+import re 
 
+from Problem import Problem
+from DummyVar import DummyVar
 
 class Rule:
 
@@ -57,9 +58,26 @@ class Rule:
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")
         print(self.constraints)
+
+        x = z3.Real('x')
+        beliefs = [10,20,30]
+
+        pattern = "\d+"
+        strFormula = ""
+
         for constraint in self.constraints:
-            constraint = str(constraint)
-            for variable in constraint: 
+            if len(constraint.children()) > 1
+            for subConstraint in constraint.children(): 
+                strConstraint = str(subConstraint)
+                print(strConstraint)
+                state = re.findall(pattern,strConstraint)
+                strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
+                strFormula += ', '
+
+            strFormula = strFormula[:len(strFormula) - 2]
+
+            constraint = z3.And(eval(strFormula))
+            print(constraint)
             
         # # build soft clauses
         # for run in range(len(self.problem.belief_in_runs)):
