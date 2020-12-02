@@ -3,24 +3,21 @@ import re
 
 x = z3.Real('x')
 beliefs = [10,20,30]
-formula = z3.Or(x > 0, x < 1)
-print(type(formula))
-formula = str(formula)
-print(formula)
+formula = z3.And(x > 0, x < 1)
 
 pattern = "\d+"
-states = re.findall(pattern, formula) 
-print(states)
+strFormula = ""
 
-for state in states: 
-    belief = str(beliefs[int(state)])
+for constraint in formula.children(): 
+    strConstraint = str(constraint)
+    print(strConstraint)
+    state = re.findall(pattern,strConstraint)
+    strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
+    strFormula += ', '
 
-    print("Bel: {}".format(belief))
-    print("State: {}".format(state))
+strFormula = strFormula[:len(strFormula) - 2]
 
-    formula = formula.replace(state, belief)
-    print(formula)
-
-print(formula)
+formula = z3.And(eval(strFormula))
+z3.solve(formula)
 
 
