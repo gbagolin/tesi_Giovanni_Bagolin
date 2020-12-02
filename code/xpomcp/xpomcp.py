@@ -1,26 +1,16 @@
 import sys, csv, os
 import math, random
 import z3
-from pm4py.objects.log.importer.xes import importer as xes_importer
+
 from Problem import Problem
+from Rule import Rule
+
 # TODO alternativo: vedere se c'è di meglio di pm4py :-)
 
 #########
 # UTILS #
 #########
 
-def Hellinger_distance(P, Q):
-    """
-    Hellinger_distance between two probability distribution.
-    """
-    dist = 0.0
-    for p, q in zip(P, Q):
-        dist += (math.sqrt(p) - math.sqrt(q)) ** 2
-
-    dist = math.sqrt(dist)
-    dist /= math.sqrt(2)
-
-    return dist
 
 def to_real(x):
     """
@@ -99,46 +89,7 @@ class RuleSynth:
 
         self.solver = z3.Optimize()
         self.thresholds  = [[] for i in range(len(rules))]
-        self.soft_constr = [[] for i in range(len(rules))]
-
-
-    def parse_xes(self, xes):
-        """
-        Parse xes log and build data from traces
-        """
-        log = xes_importer.apply(xes)
-
-        for trace in log:
-            # FIXME: this is probably redundant in xes
-            self.run_folders.append("run {}".format(trace.attributes["run"]))
-
-            # each xes trace is a POMCP's run
-            self.segments_in_runs.append([])
-            self.actions_in_runs.append([])
-            self.belief_in_runs.append([])
-
-            for event in trace:
-                # attributes
-                segment = event['segment']
-                self.segments_in_runs[-1].append(segment)
-                action = event['action']
-                self.actions_in_runs[-1].append(action)
-
-                # belief
-                self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
-                for state, particles in event['belief']['children'].items():
-                    # TODO 5 (far future): generalizzare anche questo, che sono i rs.p0()...
-                    local_difficulty = (int(state) // (3 ** (7 - segment))) % 3
-                    self.belief_in_runs[-1][-1][local_difficulty] += particles
-
-                total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
-                self.belief_in_runs[-1][-1][0] /= total
-                self.belief_in_runs[-1][-1][1] /= total
-                self.belief_in_runs[-1][-1][2] /= total
-
-        self.problem = Problem(beliefs=self.belief_in_runs,actions=self.actions_in_runs)
-
-        
+        self.soft_constr = [[] for i in range(len(rules))]    
 
     def find_max_satisfiable_rule(self, rule_num):
         """
@@ -397,7 +348,6 @@ class RuleSynth:
             self.solver.pop()
             print()
 
-
 ########
 # MAIN #
 ########
@@ -409,54 +359,17 @@ if __name__ == "__main__":
         exit()
 
     xes_log = str(sys.argv[1])
+    problem = Problem(xes_log=xes_log)
+    rule = Rule(problem = problem)
+    x1 = rule.declareVariable('x1')
+    x2 = rule.declareVariable('x2')
 
+
+
+    
     # TODO 1: dichiarare variabili prima di usarle
     # e.g x = rs.declare_var("x")
     #     y = rs.declare_var("y")
-    rs = RuleSynth(
-            xes_log=xes_log,
-            threshold=0.1,
-            rules=[
-                # TODO 2: usare le dichiarazioni per esprimere questi concetti
-                # e.g.: z3.and(x > rs.p0(), y < rs.p2())
-                SpeedRule(
-                    speeds=[2],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[],     lower_equal=[2]),
-                        SpeedRuleConstraints(greater_equal=[0, 1],  lower_equal=[])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[0],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[0,1],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[1],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[1]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[2])
-                        ]
-                    )
-
-                ]
-            )
+   
     
-    rs.synthetize_rules()
 

@@ -1,16 +1,21 @@
 from Rule import Rule
 from Problem import Problem
+import sys
 
-rule = Rule()
-problem = Problem(beliefs = 1)
+if __name__ == "__main__":
+    # parse input files
+    if len(sys.argv) == 2:
+        xes_log = str(sys.argv[1])
+    else:
+        xes_log = None
+    
+    problem = Problem(xes_log=xes_log)
+    rule = Rule(problem = problem)
+    x1 = rule.declareVariable('x1')
+    x2 = rule.declareVariable('x2')
 
-x = rule.declareVariable('x')
-y = rule.declareVariable('y')
+    rule.addConstraint(x1 < 2)
+    rule.findMaxSmtInRule()
 
-constraint1 = rule.addConstraint(x < problem.beliefs)
-constraint2 = rule.addConstraint(y > 2)
 
-rule.addFormula(constraint1,constraint2)
-print(rule.formula)
-
-rule.findMaxSmtInRule()
+#rule.findMaxSmtInRule()
