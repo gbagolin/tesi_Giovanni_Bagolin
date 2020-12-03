@@ -5,7 +5,7 @@ x = z3.Real('x')
 beliefs = [10,20,30]
 formula = z3.And(x > 0, x > 1)
 
-pattern = "\d+"
+pattern = "\^[^y]*$d+"
 strFormula = ""
 
 if formula.decl().kind() != z3.Z3_OP_AND:

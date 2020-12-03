@@ -5,6 +5,8 @@ import re
 from Problem import Problem
 from DummyVar import DummyVar
 
+import pdb
+
 class Rule:
 
     def __init__(self, problem=None, ruleNum=0, id=None, action=None, formula=None):
@@ -16,6 +18,7 @@ class Rule:
         self.soft_constr = []
         self.constraints = []
         self.rule_num = ruleNum
+        self.variables = {}
 
     def declareVariable(self, variableName):
         '''
@@ -24,6 +27,8 @@ class Rule:
         x = z3.Real(variableName)
         self.solver.add(0.0 < x)
         self.solver.add(x <= 1.0)
+        newVariable = {variableName : x}
+        self.variables.update(newVariable)
         return x
 
     def addConstraint(self, *formula):
@@ -59,26 +64,39 @@ class Rule:
         print("Solving MAX-SMT problem")
         print(self.constraints)
 
-        x = z3.Real('x')
         beliefs = [10,20,30]
 
-        pattern = "\d+"
+        pattern1 = "[^\w][0-9]+"
+        pattern2 = "[0-9]+"
         strFormula = ""
-
         for constraint in self.constraints:
-            if len(constraint.children()) > 1
-            for subConstraint in constraint.children(): 
-                strConstraint = str(subConstraint)
+            if constraint.decl().kind() != z3.Z3_OP_AND:
+                strConstraint = str(constraint)
                 print(strConstraint)
-                state = re.findall(pattern,strConstraint)
+                #pdb.set_trace()
+                state = re.findall(pattern1,strConstraint)
+                state = re.findall(pattern2,state[0])
+                print("State: {}".format(state))
                 strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
                 strFormula += ', '
+                strFormula = strFormula[:len(strFormula) - 2]
 
-            strFormula = strFormula[:len(strFormula) - 2]
+            else: 
+                for subConstraint in constraint.children(): 
+                    strConstraint = str(subConstraint)
+                    print(strConstraint)
+                    state = re.findall(pattern1,strConstraint)
+                    state = re.findall(pattern2,state[0])
+                    strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
+                    strFormula += ', '
 
-            constraint = z3.And(eval(strFormula))
-            print(constraint)
-            
+                strFormula = strFormula[:len(strFormula) - 2]
+
+            print(strFormula)
+            #pdb.set_trace()
+            formula = z3.And(eval(strFormula,self.variables))
+            print(formula)
+            z3.solve(formula)
         # # build soft clauses
         # for run in range(len(self.problem.belief_in_runs)):
         #     for bel, belief in enumerate(self.problem.belief_in_runs[run]):
