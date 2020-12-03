@@ -34,13 +34,16 @@ class Rule:
     def addConstraint(self, *formula):
         '''
         Create a z3 formula representing a constraint given a formula. 
+        eg: Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
+        output: z3.And(x1 == 1,x2 == 2, x3 == 3)
         '''
         #formula = list(formula)
         # print(formula)
         variablesInFormula = set()
         # set probabilities limits for free variables in args
+        #a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
+        #we want to put these constraints in z3.And only if they are passed all together like this: Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         for constraint in formula:
-            self.constraints.append(constraint)
             for variable in constraint.children(): 
                 #check if variable is a variable (not a constant)
                 if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED: 
@@ -50,7 +53,12 @@ class Rule:
         self.solver.add(prob_sum == 1.0)
 
 
-        return formula[0] if len(formula) == 1 else z3.And(formula)
+        if len(formula) == 1: 
+             self.constraints.append(formula[0])
+        else: 
+             self.constraints.append(z3.And(formula))
+
+        return self.constraints[-1]
 
 
     def addFormula(self, *formula):
@@ -62,7 +70,7 @@ class Rule:
 
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")
-        print(self.constraints)
+        print("Constraints: {}".format(self.constraints))
 
         beliefs = [10,20,30]
 
@@ -72,11 +80,8 @@ class Rule:
         for constraint in self.constraints:
             if constraint.decl().kind() != z3.Z3_OP_AND:
                 strConstraint = str(constraint)
-                print(strConstraint)
-                #pdb.set_trace()
                 state = re.findall(pattern1,strConstraint)
                 state = re.findall(pattern2,state[0])
-                print("State: {}".format(state))
                 strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
                 strFormula += ', '
                 strFormula = strFormula[:len(strFormula) - 2]
@@ -84,18 +89,15 @@ class Rule:
             else: 
                 for subConstraint in constraint.children(): 
                     strConstraint = str(subConstraint)
-                    print(strConstraint)
                     state = re.findall(pattern1,strConstraint)
                     state = re.findall(pattern2,state[0])
                     strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
                     strFormula += ', '
 
-                strFormula = strFormula[:len(strFormula) - 2]
-
-            print(strFormula)
-            #pdb.set_trace()
+                strFormula = strFormula[:len(strFormula) - 1]
+            
             formula = z3.And(eval(strFormula,self.variables))
-            print(formula)
+            print("Solution to constraints: ",end=' ')
             z3.solve(formula)
         # # build soft clauses
         # for run in range(len(self.problem.belief_in_runs)):
