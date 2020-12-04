@@ -470,39 +470,9 @@ if __name__ == "__main__":
                 SpeedRule(
                     speeds=[2],
                     constraints = [
-                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[],     lower_equal=[2]),
-                        SpeedRuleConstraints(greater_equal=[0, 1],  lower_equal=[])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[0],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[0,1],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[2],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[1, 2], lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[0])
-                        ]
-                    ),
-
-                    SpeedRule(
-                    speeds=[1],
-                    constraints = [
-                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[1]),
-                        SpeedRuleConstraints(greater_equal=[], lower_equal=[2])
+                        SpeedRuleConstraints(greater_equal=[0],    lower_equal=[2])
                         ]
                     )
-
                 ]
             )
     
