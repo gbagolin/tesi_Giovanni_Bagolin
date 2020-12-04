@@ -10,7 +10,9 @@ if __name__ == "__main__":
         xes_log = None
     
     problem = Problem(xes_log=xes_log)
-    rule = Rule(problem = problem)
+    # print(problem.actions_in_runs, problem.belief_in_runs,problem.segments_in_runs)
+
+    rule = Rule(actions = [2], problem = problem)
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
     y = rule.declareVariable('x3')

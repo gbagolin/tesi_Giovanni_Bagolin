@@ -5,8 +5,7 @@ class DummyVar:
     variable inside the SMT problem and the the information related to wich
     rule, run and step is codified by the variable.
     """
-    def __init__(self, literal, rule, run, step):
+    def __init__(self, literal, run, step):
         self.literal = literal
-        self.rule = rule
         self.run = run
         self.step = step

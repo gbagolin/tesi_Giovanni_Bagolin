@@ -9,9 +9,9 @@ import pdb
 
 class Rule:
 
-    def __init__(self, problem=None, ruleNum=0, id=None, action=None, formula=None):
+    def __init__(self, problem=None, ruleNum=0, id=None, actions=None, formula=None):
         self.id = id
-        self.actions = action
+        self.actions = actions
         self.formula = formula
         self.solver = z3.Optimize()
         self.problem = problem
@@ -52,13 +52,12 @@ class Rule:
         prob_sum = z3.Sum(variablesInFormula)
         self.solver.add(prob_sum == 1.0)
 
-
         if len(formula) == 1: 
              self.constraints.append(formula[0])
         else: 
              self.constraints.append(z3.And(formula))
 
-        return self.constraints[-1]
+        return self.constraints[-1] 
 
 
     def addFormula(self, *formula):
@@ -72,33 +71,51 @@ class Rule:
         print("Solving MAX-SMT problem")
         print("Constraints: {}".format(self.constraints))
 
-        beliefs = [10,20,30]
+        formula = None
 
-        pattern1 = "[^\w][0-9]+"
-        pattern2 = "[0-9]+"
-        strFormula = ""
-        for constraint in self.constraints:
-            if constraint.decl().kind() != z3.Z3_OP_AND:
-                strConstraint = str(constraint)
-                state = re.findall(pattern1,strConstraint)
-                state = re.findall(pattern2,state[0])
-                strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
-                strFormula += ', '
-                strFormula = strFormula[:len(strFormula) - 2]
+        for run in range(len(self.problem.belief_in_runs)):
+           
+            for bel, belief in enumerate(self.problem.belief_in_runs[run]):
+                # generate boolean var for soft constraints 
+                soft = z3.Bool('b_{}_{}'.format(run, bel))
+                self.soft_constr.append(DummyVar(soft, run, bel))
+                pattern1 = "[^\w][0-9]+"
+                pattern2 = "[0-9]+"
+                strFormula = ""
+                subrules = []
+                for constraint in self.constraints:
+                    strFormula = ""
+                    if constraint.decl().kind() != z3.Z3_OP_AND:
+                        strConstraint = str(constraint)
+                        state = re.findall(pattern1,strConstraint)
+                        state = re.findall(pattern2,state[0])
+                        strFormula += strConstraint.replace(state[0],str(belief[int(state[0])]))
+                        strFormula += ', '
+                        strFormula = strFormula[:len(strFormula) - 2]
 
-            else: 
-                for subConstraint in constraint.children(): 
-                    strConstraint = str(subConstraint)
-                    state = re.findall(pattern1,strConstraint)
-                    state = re.findall(pattern2,state[0])
-                    strFormula += strConstraint.replace(state[0],str(beliefs[int(state[0])]))
-                    strFormula += ', '
+                    else: 
+                        for subConstraint in constraint.children(): 
+                            strConstraint = str(subConstraint)
+                            state = re.findall(pattern1,strConstraint)
+                            state = re.findall(pattern2,state[0])
+                            strFormula += strConstraint.replace(state[0],str(belief[int(state[0])]))
+                            strFormula += ', '
 
-                strFormula = strFormula[:len(strFormula) - 1]
-            
-            formula = z3.And(eval(strFormula,self.variables))
-            print("Solution to constraints: ",end=' ')
-            z3.solve(formula)
+                        strFormula = strFormula[:len(strFormula) - 1]
+                    
+                    subrules.append(z3.And(eval(strFormula,self.variables)))
+                    print("Subrules: {}".format(subrules))
+
+                formula = z3.Or(subrules) #ho più modi per soddisfare queste regole. 
+                print(formula)
+
+                #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla. 
+                if self.problem.actions_in_runs[run][bel] not in self.actions: #vedo se l'azione scelta viene rispettata dal bielef
+                    formula = z3.Not(formula) 
+
+                self.solver.add(z3.Or(soft, formula)) #può essere risolto dall cheat (soft) oppure dalla formula. 
+        
+        #print(formula)
         # # build soft clauses
         # for run in range(len(self.problem.belief_in_runs)):
         #     for bel, belief in enumerate(self.problem.belief_in_runs[run]):
