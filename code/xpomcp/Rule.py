@@ -8,7 +8,7 @@ from DummyVar import DummyVar
 
 import pdb
 
-def Hellinger_distance(self,P, Q):
+def Hellinger_distance(P, Q):
         """
         Hellinger_distance between two probability distribution.
         """
@@ -21,9 +21,15 @@ def Hellinger_distance(self,P, Q):
 
         return dist
 
+def to_real(x):
+    """
+    Convert Z3 Fractional numbers into floating points
+    """
+    return float(x.numerator_as_long()/x.denominator_as_long())
+
 class Rule:
 
-    def __init__(self, problem=None, ruleNum=0, id=None, actions=None, formula=None):
+    def __init__(self, problem=None, ruleNum=0, id=None, actions=None, formula=None,threshold = 0.10):
         self.id = id
         self.actions = actions
         self.formula = formula
@@ -33,6 +39,8 @@ class Rule:
         self.constraints = []
         self.rule_num = ruleNum
         self.variables = {}
+        self.variable_sign = {}
+        self.threshold = threshold
 
     def declareVariable(self, variableName):
         '''
@@ -73,7 +81,6 @@ class Rule:
 
         return self.constraints[-1] 
 
-
     def addFormula(self, *formula):
         '''
         Assign the z3 formula that will be processed by the optimizer 
@@ -103,6 +110,7 @@ class Rule:
                         strConstraint = str(constraint)
                         state = re.findall(pattern1,strConstraint)
                         state = re.findall(pattern2,state[0])
+
                         strFormula += strConstraint.replace(state[0],str(belief[int(state[0])]))
                         strFormula += ', '
                         strFormula = strFormula[:len(strFormula) - 2]
@@ -117,7 +125,7 @@ class Rule:
 
                         strFormula = strFormula[:len(strFormula) - 1]
                     
-                    subrules.append(z3.And(eval(strFormula,self.variables)))
+                    subrules.append(z3.And(eval(strFormula,{}, self.variables)))
 
                 formula = z3.Or(subrules) #ho più modi per soddisfare queste regole. 
         
@@ -155,6 +163,34 @@ class Rule:
         # print(best_model)
         return best_model
 
+    def print_rule_result(self, model):
+        """
+        pretty printing of rules, give a certain model
+        """
+        print('rule: go at speed {} if: '.format(self.speeds[0] if len(self.speeds) == 1 else self.speeds), end = '')
+        for i, constraint in enumerate(self.constraints):
+            if i > 0:
+                print('OR ', end='')
+
+            if len(constraint.greater_equal) + len(constraint.lower_equal) == 1:
+                for c in constraint.greater_equal:
+                    print('P_{} >= {:.3f} '.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
+                for c in constraint.lower_equal:
+                    print('P_{} <= {:.3f} '.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
+            elif len(constraint.greater_equal) != 0:
+                print('(P_{} >= {:.3f}'.format(constraint.greater_equal[0], to_real(model[self.thresholds[rule_num][i][0]])), end='')
+                for c in constraint.greater_equal[1:]:
+                    print(' AND P_{} >= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
+                for c in constraint.lower_equal:
+                    print(' AND P_{} <= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
+                print(') ',end='')
+            else:
+                print('(P_{} <= {:.3f} '.format(constraint.lower_equal[0], to_real(model[self.thresholds[rule_num][i][0]])), end='')
+                for c in constraint.lower_equal[1:]:
+                    print(' AND P_{} <= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
+                print(') ',end='')
+        print()
+
     def synthetize_rule(self, model):
         """
         Synthetize a rule as close as possible to the trace.
@@ -173,10 +209,8 @@ class Rule:
         # cerco di trovare i numeri più grandi che soddisfano la regola. 
         interval_cost = z3.Real('interval_cost')
         cost = []
-
         for variable in self.variables.values():
             cost.append(variable)
-   
         total_cost = z3.Sum(cost)
         self.solver.add(interval_cost == total_cost)
         self.solver.minimize(interval_cost)
@@ -198,7 +232,7 @@ class Rule:
             return
 
         # print results
-        self.print_rule_result(m)
+        # self.print_rule_result(m)
 
         # generate 1000 random points inside the rule
         rule_points = []
@@ -213,19 +247,54 @@ class Rule:
             satisfy_a_constraint = False
             for i, constraint in enumerate(self.constraints):
                 is_ok = True
-                for c in constraint.lower_equal:
-                    threshold = to_real(m[self.thresholds[rule_num][i][c]])
-                    if point[c] > threshold:
-                        is_ok = False
-                        break
-                if not is_ok:
-                    continue
+                #constraint takes the form of: z3.And(x1 < n1, x2 < n2)
+                if constraint.decl().kind() == z3.Z3_OP_AND:
 
-                for c in constraint.greater_equal:
-                    threshold = to_real(m[self.thresholds[rule_num][i][c]])
-                    if point[c] < threshold:
-                        is_ok = False
-                        break
+                    for variable in constraint.children():
+                        operator = variable.decl().name()
+                        state = None
+                        variable_constraint = None
+
+                        for var in variable.children():
+                            if z3.is_const(var) and var.decl().kind() == z3.Z3_OP_UNINTERPRETED: 
+                                variable_constraint = var
+                            else: 
+                                state = var.as_long()
+                                
+                        threshold = to_real(m[variable_constraint])
+                        if operator == '<': 
+                            if point[state] > threshold:
+                                is_ok = False
+                                break
+
+                        elif operator == '>': 
+                            if point[state] < threshold:
+                                is_ok = False
+                                break
+                #constraint takes the form of x1 < n1
+                else:
+
+                    operator = constraint.decl().name()
+                    state = None
+                    variable_constraint = None
+
+                    for variable in constraint.children():
+                        if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED: 
+                            variable_constraint = variable
+                        else:
+                            state = variable.as_long()
+                            
+                    threshold = to_real(m[variable_constraint])
+                    if operator == '<': 
+                        if point[state] > threshold:
+                            is_ok = False
+                            break
+
+                        elif operator == '>': 
+                            if point[state] < threshold:
+                                is_ok = False
+                                break
+                
                 if not is_ok:
                     continue
 
@@ -240,32 +309,32 @@ class Rule:
         failed_rules_diff_action = []
         Hellinger_min = []
         failed_step_counter = 0
-        for num, soft in enumerate(self.soft_constr[rule_num]):
-            if m[soft.literal] == False or not (self.actions_in_runs[soft.run][soft.step] in self.rules[rule_num].speeds) :
+        for num, soft in enumerate(self.soft_constr):
+            if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
                 continue
             failed_rules_diff_action.append(num)
-            P = [ self.belief_in_runs[soft.run][soft.step][0], self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2] ]
+            P = [ self.problem.belief_in_runs[soft.run][soft.step][0], self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2] ]
             hel_dst = [Hellinger_distance(P, Q) for Q in rule_points]
             Hellinger_min.append(min(hel_dst))
 
         # print unsatisfiable steps in decreasing order of hellinger distance
         print('Unsatisfiable steps same action:')
         #anomaly_positions = []
-        for soft, hel in [[self.soft_constr[rule_num][x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
+        for soft, hel in [[self.soft_constr[x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
             print("({})".format(failed_step_counter),end='')
             if hel > self.threshold:
                 print('ANOMALY: ', end='')
                 
             print('{} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f} --- Hellinger = {}'.format(
-                self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
-                self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2], hel))
+                self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step], self.problem.belief_in_runs[soft.run][soft.step][0],
+                self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2], hel))
             failed_step_counter += 1 
             # if hel > self.threshold:
             #     anomaly_positions.append(pos)
 
         failed_steps_same_action = []
-        for num, soft in enumerate(self.soft_constr[rule_num]):
-            if m[soft.literal] == False or (self.actions_in_runs[soft.run][soft.step] in self.rules[rule_num].speeds) :
+        for num, soft in enumerate(self.soft_constr):
+            if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions) :
                 continue
             failed_steps_same_action.append(soft)
 
@@ -276,7 +345,7 @@ class Rule:
         for soft in failed_steps_same_action:
             
             print('({}) {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f}'.format(failed_step_counter,
-                self.run_folders[soft.run], soft.step, self.actions_in_runs[soft.run][soft.step], self.belief_in_runs[soft.run][soft.step][0],
-                self.belief_in_runs[soft.run][soft.step][1], self.belief_in_runs[soft.run][soft.step][2]))
+                self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step], self.problem.belief_in_runs[soft.run][soft.step][0],
+                self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2]))
             failed_step_counter += 1
 

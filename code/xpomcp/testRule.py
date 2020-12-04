@@ -1,6 +1,7 @@
 from Rule import Rule
 from Problem import Problem
 import sys
+import z3
 
 if __name__ == "__main__":
     # parse input files
@@ -17,9 +18,9 @@ if __name__ == "__main__":
     x2 = rule.declareVariable('x2')
     y = rule.declareVariable('x3')
 
-    print("Variables: {}".format(rule.variables.values()))
-
     rule.addConstraint(x1 == 2, x2 == 0, y < 1)
     
     model = rule.findMaxSmtInRule()
+
+    rule.synthetize_rule(model)
    
