@@ -16,9 +16,8 @@ if __name__ == "__main__":
     rule = Rule(actions = [2], problem = problem)
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
-    y = rule.declareVariable('x3')
 
-    rule.addConstraint(x1 == 2, x2 == 0, y < 1)
+    rule.addConstraint(x1 < 2, x2 > 0)
     
     model = rule.findMaxSmtInRule()
 

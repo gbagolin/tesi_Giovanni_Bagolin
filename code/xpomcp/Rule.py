@@ -167,28 +167,13 @@ class Rule:
         """
         pretty printing of rules, give a certain model
         """
-        print('rule: go at speed {} if: '.format(self.speeds[0] if len(self.speeds) == 1 else self.speeds), end = '')
+        print('rule: go at speed {} if: '.format(self.actions[0] if len(self.actions) == 1 else self.actions), end = '')
         for i, constraint in enumerate(self.constraints):
             if i > 0:
                 print('OR ', end='')
 
-            if len(constraint.greater_equal) + len(constraint.lower_equal) == 1:
-                for c in constraint.greater_equal:
-                    print('P_{} >= {:.3f} '.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
-                for c in constraint.lower_equal:
-                    print('P_{} <= {:.3f} '.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
-            elif len(constraint.greater_equal) != 0:
-                print('(P_{} >= {:.3f}'.format(constraint.greater_equal[0], to_real(model[self.thresholds[rule_num][i][0]])), end='')
-                for c in constraint.greater_equal[1:]:
-                    print(' AND P_{} >= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
-                for c in constraint.lower_equal:
-                    print(' AND P_{} <= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
-                print(') ',end='')
-            else:
-                print('(P_{} <= {:.3f} '.format(constraint.lower_equal[0], to_real(model[self.thresholds[rule_num][i][0]])), end='')
-                for c in constraint.lower_equal[1:]:
-                    print(' AND P_{} <= {:.3f}'.format(c, to_real(model[self.thresholds[rule_num][i][c]])), end='')
-                print(') ',end='')
+            str = ""
+            
         print()
 
     def synthetize_rule(self, model):
