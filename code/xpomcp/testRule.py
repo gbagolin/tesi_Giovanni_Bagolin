@@ -2,6 +2,7 @@ from Rule import Rule
 from Problem import Problem
 import sys
 import z3
+import pdb
 
 if __name__ == "__main__":
     # parse input files
@@ -17,7 +18,7 @@ if __name__ == "__main__":
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
 
-    rule.addConstraint(x1 < 2, x2 > 0)
+    rule.addConstraint(x1 > 0, x2 < 2)
     
     model = rule.findMaxSmtInRule()
 
