@@ -12,7 +12,6 @@ if __name__ == "__main__":
         xes_log = None
     
     problem = Problem(xes_log=xes_log)
-    # print(problem.actions_in_runs, problem.belief_in_runs,problem.segments_in_runs)
 
     rule = Rule(actions = [2], problem = problem)
     
@@ -21,13 +20,5 @@ if __name__ == "__main__":
     
     rule.addConstraint(x2 <= 2, x1 >= 0)
     
-    # print(rule.variables)
-    # print(rule.variable_state)
-    # print(rule.threshold)
-    # print(rule.variable_constraint_set)
-    # print(rule.variable_sign)
-    
-    rule.addHardConstraint(x2 <= 0.10)
-
     rule.solve()
    

@@ -235,53 +235,17 @@ class Rule:
             point[2] = 1.0 - point[0] - point[1]
 
             satisfy_a_constraint = False
-            for i, constraint in enumerate(self.constraints):
+            for i, and_constraint in enumerate(self.constraints):
                 is_ok = True
-                #constraint takes the form of: z3.And(x1 < n1, x2 < n2)
-                if constraint.decl().kind() == z3.Z3_OP_AND:
-
-                    for variable in constraint.children():
-                        operator = variable.decl().name()
-                        state = None
-                        variable_constraint = None
-
-                        for var in variable.children():
-                            if z3.is_const(var) and var.decl().kind() == z3.Z3_OP_UNINTERPRETED:
-                                variable_constraint = var
-                            else:
-                                state = var.as_long()
-
-                        threshold = to_real(m[variable_constraint])
-                        if operator == '<':
-                            if point[state] > threshold:
+                for constraint in and_constraint: 
+                        threshold = to_real(m[constraint.variable])
+                        if constraint.operator == '<':
+                            if point[constraint.state] > threshold:
                                 is_ok = False
                                 break
 
-                        elif operator == '>':
-                            if point[state] < threshold:
-                                is_ok = False
-                                break
-                #constraint takes the form of x1 < n1
-                else:
-
-                    operator = constraint.decl().name()
-                    state = None
-                    variable_constraint = None
-
-                    for variable in constraint.children():
-                        if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED:
-                            variable_constraint = variable
-                        else:
-                            state = variable.as_long()
-
-                    threshold = to_real(m[variable_constraint])
-                    if operator == '<':
-                        if point[state] > threshold:
-                            is_ok = False
-                            break
-
-                        elif operator == '>':
-                            if point[state] < threshold:
+                        elif constraint.operator == '>':
+                            if point[constraint.state] < threshold:
                                 is_ok = False
                                 break
 
@@ -345,7 +309,6 @@ class Rule:
         """
         self.solver.push()
         model = self.findMaxSmtInRule()
-        self.print_rule_result(model)
-        #self.synthetize_rule(model)
+        self.synthetize_rule(model)
         self.solver.pop()
         print()
