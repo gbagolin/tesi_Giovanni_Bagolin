@@ -91,13 +91,21 @@ class Rule:
 
         return self.constraints[-1]
 
+    
     def addFormula(self, *formula):
         '''
         Assign the z3 formula that will be processed by the optimizer
         '''
         formula = list(formula)
         self.formula = z3.Or(formula)
-
+        
+    def addHardConstraint(self,*constraints):
+        '''
+        Add hard constraints 
+        ''' 
+        for constraint in constraints:
+            self.solver.add(constraint)
+    
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")
         print("Constraints: {}".format(self.constraints))
@@ -147,9 +155,6 @@ class Rule:
 
                 self.solver.add(z3.Or(soft, formula)) #può essere risolto dall cheat (soft) oppure dalla formula.
                 
-        print("Solver :")
-        print(self.solver)
-
         # solve MAX-SMT problem
         low_threshold = 0
         total_soft_constr = len(self.soft_constr)
