@@ -15,12 +15,13 @@ if __name__ == "__main__":
     # print(problem.actions_in_runs, problem.belief_in_runs,problem.segments_in_runs)
 
     rule = Rule(actions = [2], problem = problem)
+    
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
-
-    rule.addConstraint(x1 > 0, x2 < 2)
+    x3 = rule.declareVariable('x3')
+    x4 = rule.declareVariable('x4')
     
-    model = rule.findMaxSmtInRule()
+    rule.addConstraint(x1 > 0, x2 < 2)
 
-    rule.synthetize_rule(model)
+    rule.solve()
    
