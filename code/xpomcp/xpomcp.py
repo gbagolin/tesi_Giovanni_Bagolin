@@ -217,10 +217,9 @@ class RuleSynth:
         # e.g. rs.add_hard_constraint(x >= 0.7)
         # TODO 4: rimuovere codice specifico del problema di velocity regulation come la stampa, generazione di punti ecc
         if rule_num == 0: 
-            self.solver.add(self.thresholds[0][0][0] >= 0.70)
-
-        if rule_num == 1: 
-            self.solver.add(self.thresholds[1][0][2] >= 0.70)
+            self.solver.add(self.thresholds[0][0][0] >= 0.90)
+        if rule_num == 0: 
+            self.solver.add(self.thresholds[0][0][2] <= 0.10)
 
         # build soft clauses
         for run in range(len(self.belief_in_runs)):
