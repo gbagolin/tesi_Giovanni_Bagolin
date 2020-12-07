@@ -19,8 +19,15 @@ if __name__ == "__main__":
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
     
-    rule.addConstraint(x2 < 2, x1 > 0)
-    rule.addHardConstraint(x2 < 0.10)
+    rule.addConstraint(x2 <= 2, x1 >= 0)
+    
+    # print(rule.variables)
+    # print(rule.variable_state)
+    # print(rule.threshold)
+    # print(rule.variable_constraint_set)
+    # print(rule.variable_sign)
+    
+    rule.addHardConstraint(x2 <= 0.10)
 
     rule.solve()
    

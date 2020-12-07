@@ -5,6 +5,7 @@ import random
 
 from Problem import Problem
 from DummyVar import DummyVar
+from Constraint import Constraint
 
 import pdb
 
@@ -43,6 +44,7 @@ class Rule:
         self.variable_state = {}
         self.threshold = threshold
         self.variable_constraint_set = []
+        
 
     def declareVariable(self, variableName):
         '''
@@ -61,36 +63,26 @@ class Rule:
         eg: Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         output: z3.And(x1 == 1,x2 == 2, x3 == 3)
         '''
-        #formula = list(formula)
-        # print(formula)
 
         variablesInFormula = set()
+        and_constraint_list = []
         # set probabilities limits for free variables in args
         #a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
-        #we want to put these constraints in z3.And only if they are passed all together like this: Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
+        #we want to put these constraints in z3.And only if they are passed all together like this: 
+        # Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         for constraint in formula:
-            sign = constraint.decl().name()
-            var = None
-            for variable in constraint.children():
-                #check if variable is a variable (not a constant)
-                if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED:
-                    variablesInFormula.add(variable)
-                    self.variable_sign[variable] = sign
-                    var = variable
-                else: 
-                    self.variable_state[var] = variable
+            constr = Constraint(constraint)
+            variablesInFormula.add(constr.variable)
+            self.variable_sign[constr.variable] = constr.operator
+            self.variable_state[constr.variable] = constr.state
+            and_constraint_list.append(constr)
 
         prob_sum = z3.Sum(variablesInFormula)
+        
         self.solver.add(prob_sum == 1.0)
         self.variable_constraint_set.append(variablesInFormula)
 
-        if len(formula) == 1:
-             self.constraints.append(formula[0])
-        else:
-             self.constraints.append(z3.And(formula))
-
-        return self.constraints[-1]
-
+        self.constraints.append(and_constraint_list)
     
     def addFormula(self, *formula):
         '''
@@ -115,39 +107,26 @@ class Rule:
         for run in range(len(self.problem.belief_in_runs)):
 
             for bel, belief in enumerate(self.problem.belief_in_runs[run]):
+                
                 # generate boolean var for soft constraints
                 soft = z3.Bool('b_{}_{}'.format(run, bel))
                 self.soft_constr.append(DummyVar(soft, run, bel))
-                pattern1 = "[^\w][0-9]+"
-                str_formula = ""
                 subrules = []
-                for constraint in self.constraints:
+                
+                for constraints_in_and in self.constraints: 
                     str_formula = ""
-                    if constraint.decl().kind() != z3.Z3_OP_AND:
-                        str_constraint = str(constraint)
-                        old_state = int(re.findall(pattern1,str_constraint)[0])
-                        new_state = belief[old_state]
-                        pos = re.search(pattern1,str_constraint)
-                            #pos.start() + 1 takes care of the non integer character before
-                        str_formula += str_constraint[:pos.start() + 1] + str(new_state) + str_constraint[pos.end():]
-                        str_formula += ', '
-                        str_formula = str_formula[:len(str_formula) - 1]
-
-                    else:
-                        for sub_constraint in constraint.children():
-                            str_constraint = str(sub_constraint)
-                            old_state = int(re.findall(pattern1,str_constraint)[0])
-                            new_state = belief[old_state]
-                            pos = re.search(pattern1,str_constraint)
-                            #pos.start() + 1 takes care of the non integer character before
-                            str_formula += str_constraint[:pos.start() + 1] + str(new_state) + str_constraint[pos.end():]
-                            str_formula += ', '
-
-                        str_formula = str_formula[:len(str_formula) - 2]
-
+                    
+                    for i, constraint in enumerate(constraints_in_and): 
+                        constraint.belief = belief[constraint.state]
+                        
+                        if i > 0:
+                            str_formula += ','
+                            
+                        str_formula += constraint.__str__()
+                    
                     subrules.append(z3.And(eval(str_formula,{}, self.variables)))
-
-                formula = z3.Or(subrules) #ho più modi per soddisfare queste regole.
+                    
+                formula = z3.Or(subrules)
 
                 #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla.
                 if self.problem.actions_in_runs[run][bel] not in self.actions: #vedo se l'azione scelta viene rispettata dal bielef
@@ -366,6 +345,7 @@ class Rule:
         """
         self.solver.push()
         model = self.findMaxSmtInRule()
-        self.synthetize_rule(model)
+        self.print_rule_result(model)
+        #self.synthetize_rule(model)
         self.solver.pop()
         print()

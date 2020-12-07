@@ -145,7 +145,6 @@ class RuleSynth:
 
                 formula = z3.Or(subrules) #ho più modi per soddisfare queste regole. 
 
-                
                 #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla. 
                 if self.actions_in_runs[run][bel] not in rule.speeds: #vedo se l'azione scelta viene rispettata dal bielef
                     formula = z3.Not(formula) 
