@@ -18,8 +18,6 @@ if __name__ == "__main__":
     
     x1 = rule.declareVariable('x1')
     x2 = rule.declareVariable('x2')
-    x3 = rule.declareVariable('x3')
-    x4 = rule.declareVariable('x4')
     
     rule.addConstraint(x1 > 0, x2 < 2)
 

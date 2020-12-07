@@ -1,4 +1,3 @@
-
 import z3
 import math
 import re
@@ -147,6 +146,9 @@ class Rule:
                     formula = z3.Not(formula)
 
                 self.solver.add(z3.Or(soft, formula)) #può essere risolto dall cheat (soft) oppure dalla formula.
+                
+        print("Solver :")
+        print(self.solver)
 
         # solve MAX-SMT problem
         low_threshold = 0
