@@ -18,6 +18,7 @@ class Constraint:
         else: 
             return "{} {} {}".format(self.state,self.operator,self.variable)
     
+    
                 
 
 

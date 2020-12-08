@@ -6,6 +6,7 @@ import random
 from Problem import Problem
 from DummyVar import DummyVar
 from Constraint import Constraint
+from exceptions.OperandError import OperandError
 
 import pdb
 
@@ -53,6 +54,8 @@ class Rule:
         x = z3.Real(variableName)
         self.solver.add(0.0 < x)
         self.solver.add(x <= 1.0)
+        if variableName.find("added") != -1: 
+            return x
         newVariable = {variableName : x}
         self.variables.update(newVariable)
         return x
@@ -65,6 +68,8 @@ class Rule:
         '''
 
         variablesInFormula = set()
+        variables_added = set()
+        
         and_constraint_list = []
         # set probabilities limits for free variables in args
         #a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
@@ -77,8 +82,11 @@ class Rule:
             self.variable_state[constr.variable] = constr.state
             and_constraint_list.append(constr)
 
-        prob_sum = z3.Sum(variablesInFormula)
+        if len(formula) < len(self.problem.states):
+            for i in range(len(self.problem.states) - len(formula)): 
+                variables_added.add(self.declareVariable('added_{}'.format(i)))
         
+        prob_sum = z3.Sum(variablesInFormula.union(variables_added))
         self.solver.add(prob_sum == 1.0)
         self.variable_constraint_set.append(variablesInFormula)
 
@@ -100,7 +108,6 @@ class Rule:
     
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")
-        print("Constraints: {}".format(self.constraints))
 
         formula = None
 
@@ -166,7 +173,7 @@ class Rule:
         """
         pretty printing of rules, give a certain model
         """
-        print('rule: go at speed {} if: '.format(self.actions[0] if len(self.actions) == 1 else self.actions), end = '')
+        print('rule: do action {} if: '.format(self.actions[0] if len(self.actions) == 1 else self.actions), end = '')
 
         for i, variables in enumerate(self.variable_constraint_set):
             if i > 0:
@@ -199,8 +206,14 @@ class Rule:
         # cerco di trovare i numeri più grandi che soddisfano la regola.
         interval_cost = z3.Real('interval_cost')
         cost = []
+        
+        negative_sign = ['<','<=']
         for variable in self.variables.values():
-            cost.append(variable)
+            if self.variable_sign[variable] in negative_sign:
+                cost.append(-variable)
+            else: 
+                cost.append(variable)
+
         total_cost = z3.Sum(cost)
         self.solver.add(interval_cost == total_cost)
         self.solver.minimize(interval_cost)
@@ -243,11 +256,25 @@ class Rule:
                             if point[constraint.state] > threshold:
                                 is_ok = False
                                 break
-
                         elif constraint.operator == '>':
                             if point[constraint.state] < threshold:
                                 is_ok = False
                                 break
+                        elif constraint.operator == '<=':
+                            if point[constraint.state] >= threshold:
+                                is_ok = False
+                                break
+
+                        elif constraint.operator == '>=':
+                            if point[constraint.state] <= threshold:
+                                is_ok = False
+                                break
+                        elif constraint.operator == '==':
+                            if point[constraint.state] == threshold:
+                                is_ok = False
+                                break
+                        else: 
+                            raise OperandError(constraint.operator)
 
                 if not is_ok:
                     continue
@@ -309,6 +336,7 @@ class Rule:
         """
         self.solver.push()
         model = self.findMaxSmtInRule()
-        self.synthetize_rule(model)
+        #self.synthetize_rule(model)
+        self.print_rule_result(model)
         self.solver.pop()
         print()
