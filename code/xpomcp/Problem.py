@@ -42,16 +42,23 @@ class Problem:
                 self.actions_in_runs[-1].append(action)
 
                 # belief
-                self.belief_in_runs[-1].append({0:0, 1:0, 2:0})
+                belief_dict = {}
+                for state in range(len(self.states)):
+                    belief_dict[state] = 0
+                    
+                self.belief_in_runs[-1].append(belief_dict)
+                
                 for state, particles in event['belief']['children'].items():
                     # TODO 5 (far future): generalizzare anche questo, che sono i rs.p0()...
                     local_difficulty = (int(state) // (3 ** (7 - segment))) % 3
                     self.belief_in_runs[-1][-1][local_difficulty] += particles
-
-                total = self.belief_in_runs[-1][-1][0] + self.belief_in_runs[-1][-1][1] + self.belief_in_runs[-1][-1][2]
-                self.belief_in_runs[-1][-1][0] /= total
-                self.belief_in_runs[-1][-1][1] /= total
-                self.belief_in_runs[-1][-1][2] /= total
+                
+                total = 0
+                for state in range(len(self.states)): 
+                    total += self.belief_in_runs[-1][-1][state]
+                    
+                for state in range(len(self.states)): 
+                    self.belief_in_runs[-1][-1][state] /= total
     
     def generate_points(self): 
         point = [ 0.0 for _ in range(len(self.states))]

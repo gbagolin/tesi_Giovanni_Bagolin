@@ -288,7 +288,7 @@ class Rule:
             if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
                 continue
             failed_rules_diff_action.append(num)
-            P = [ self.problem.belief_in_runs[soft.run][soft.step][0], self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2] ]
+            P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in self.problem.states]
             hel_dst = [Hellinger_distance(P, Q) for Q in rule_points]
             Hellinger_min.append(min(hel_dst))
 
@@ -299,13 +299,15 @@ class Rule:
             print("({})".format(failed_step_counter),end='')
             if hel > self.threshold:
                 print('ANOMALY: ', end='')
-
-            print('{} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f} --- Hellinger = {}'.format(
-                self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step], self.problem.belief_in_runs[soft.run][soft.step][0],
-                self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2], hel))
+            
+            print('{} step {}: action {} with belief '.format(self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step]), end='')
+            
+            for state in self.problem.states:
+                print('P_{} = {:.3f} '.format(state,self.problem.belief_in_runs[soft.run][soft.step][state]), end = '')
+                
+            print('--- Hellinger = {}'.format(hel))
+            
             failed_step_counter += 1
-            # if hel > self.threshold:
-            #     anomaly_positions.append(pos)
 
         failed_steps_same_action = []
         for num, soft in enumerate(self.soft_constr):
@@ -318,10 +320,10 @@ class Rule:
             print('Unsatisfiable steps different action:')
         #anomaly_positions = []
         for soft in failed_steps_same_action:
-
-            print('({}) {} step {}: action {} with belief P_0 = {:.3f} P_1 = {:.3f} P_2 = {:.3f}'.format(failed_step_counter,
-                self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step], self.problem.belief_in_runs[soft.run][soft.step][0],
-                self.problem.belief_in_runs[soft.run][soft.step][1], self.problem.belief_in_runs[soft.run][soft.step][2]))
+            print('{} step {}: action {} with belief '.format(self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step]), end='')
+            for state in self.problem.states:
+                print('P_{} = {:.3f} '.format(state,self.problem.belief_in_runs[soft.run][soft.step][state]), end = '')
+            print()
             failed_step_counter += 1
 
     def solve(self):
