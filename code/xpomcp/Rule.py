@@ -81,10 +81,6 @@ class Rule:
             self.variable_sign[constr.variable] = constr.operator
             self.variable_state[constr.variable] = constr.state
             and_constraint_list.append(constr)
-
-        if len(formula) < len(self.problem.states):
-            for i in range(len(self.problem.states) - len(formula)): 
-                variables_added.add(self.declareVariable('added_{}'.format(i)))
                      
         self.variable_constraint_set.append(variablesInFormula)
 
@@ -118,7 +114,7 @@ class Rule:
                 self.soft_constr.append(DummyVar(soft, run, bel))
                 subrules = []
                 
-                for constraints_in_and in self.constraints: #[[x1 <= 1, x2<= 2], [x3]] 
+                for constraints_in_and in self.constraints: 
                     str_formula = ""
                     
                     for i, constraint in enumerate(constraints_in_and): 
@@ -126,9 +122,9 @@ class Rule:
                         
                         if i > 0:
                             str_formula += ','
-                        #x1 <= 120301231
+                        
                         str_formula += constraint.__str__()
-                    #z3.Andx1 <= 123123, x2 <= 3213
+
                     subrules.append(z3.And(eval(str_formula,{}, self.variables)))
                     
                 formula = z3.Or(subrules)
@@ -136,8 +132,8 @@ class Rule:
                 #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla.
                 if self.problem.actions_in_runs[run][bel] not in self.actions: #vedo se l'azione scelta viene rispettata dal bielef
                     formula = z3.Not(formula)
-
-                self.solver.add(z3.Or(soft, formula)) #può essere risolto dall cheat (soft) oppure dalla formula.
+                #può essere risolto dall cheat (soft) oppure dalla formula
+                self.solver.add(z3.Or(soft, formula)) 
                 
         # solve MAX-SMT problem
         low_threshold = 0
@@ -243,10 +239,7 @@ class Rule:
         generated_points = 0
         #crei dei punti perchè potrei non aver visto tutti i casi strani dalle traccie.
         while generated_points < 1000:
-            point = [ 0.0, 0.0, 0.0 ]
-            point[0] = random.uniform(0.0, 1.0)
-            point[1] = random.uniform(0.0, 1.0 - point[0])
-            point[2] = 1.0 - point[0] - point[1]
+            point = self.problem.generate_points()
 
             satisfy_a_constraint = False
             for i, and_constraint in enumerate(self.constraints):

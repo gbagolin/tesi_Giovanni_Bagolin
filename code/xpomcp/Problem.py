@@ -1,5 +1,6 @@
 from pm4py.objects.log.importer.xes import importer as xes_importer
 
+import random
 
 class Problem:
 
@@ -51,3 +52,22 @@ class Problem:
                 self.belief_in_runs[-1][-1][0] /= total
                 self.belief_in_runs[-1][-1][1] /= total
                 self.belief_in_runs[-1][-1][2] /= total
+    
+    def generate_points(self): 
+        point = [ 0.0 for _ in range(len(self.states))]
+        
+        for i in range(len(self.states) - 1):
+            prev_points = 1.0
+            for pos in range(i):
+                prev_points -= point[pos]
+            point[i] = random.uniform(0.0, prev_points)
+                
+        prev_points = 1.0
+        for i in range(len(self.states)): 
+            prev_points -= point[i]
+        point[len(self.states) - 1] = prev_points
+        
+        return point
+    
+        
+
