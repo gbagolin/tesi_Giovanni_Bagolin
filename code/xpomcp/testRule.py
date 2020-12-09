@@ -24,6 +24,9 @@ if __name__ == "__main__":
     rule.addConstraint(x1 >= 2)
     rule.addConstraint(x2 >= 1, x3 >= 2)
     rule.addConstraint(x4 <= 0)
+    rule.addHardConstraint(x1 >= 0.70)
+    
+    rule.solve()
     
     # rule = Rule(actions = [2], problem = problem)
     
@@ -32,7 +35,24 @@ if __name__ == "__main__":
     
     # rule.addConstraint(x2 <= 2, x1 >= 0)
     
+    rule = Rule(actions = [2], problem = problem)
+    
+    x1 = rule.declareVariable('x1')
+    x2 = rule.declareVariable('x2')
+    x3 = rule.declareVariable('x3')
+    x4 = rule.declareVariable('x4')
+    
+    rule.addConstraint(x1 >= 0)
+    rule.addConstraint(x2 <= 2)
+    rule.addConstraint(x3 >= 0, x4 >= 1)
+    rule.addHardConstraint(x1 >= 0.70)
+    
     rule.solve()
+    # # print(rule.variable_constraint_set)
+    # # print(rule.variables)
+    # # print(rule.variable_sign)
+    # # print(rule.variable_state)
+    
     
     # rule = Rule(actions = [0,1], problem = problem)
     

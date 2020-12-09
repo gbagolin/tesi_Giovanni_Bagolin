@@ -85,9 +85,7 @@ class Rule:
         if len(formula) < len(self.problem.states):
             for i in range(len(self.problem.states) - len(formula)): 
                 variables_added.add(self.declareVariable('added_{}'.format(i)))
-        
-        prob_sum = z3.Sum(variablesInFormula.union(variables_added))
-        self.solver.add(prob_sum == 1.0)
+                     
         self.variable_constraint_set.append(variablesInFormula)
 
         self.constraints.append(and_constraint_list)
@@ -120,7 +118,7 @@ class Rule:
                 self.soft_constr.append(DummyVar(soft, run, bel))
                 subrules = []
                 
-                for constraints_in_and in self.constraints: 
+                for constraints_in_and in self.constraints: #[[x1 <= 1, x2<= 2], [x3]] 
                     str_formula = ""
                     
                     for i, constraint in enumerate(constraints_in_and): 
@@ -128,9 +126,9 @@ class Rule:
                         
                         if i > 0:
                             str_formula += ','
-                            
+                        #x1 <= 120301231
                         str_formula += constraint.__str__()
-                    
+                    #z3.Andx1 <= 123123, x2 <= 3213
                     subrules.append(z3.And(eval(str_formula,{}, self.variables)))
                     
                 formula = z3.Or(subrules)
@@ -189,6 +187,7 @@ class Rule:
         print()
 
     def synthetize_rule(self, model):
+        
         """
         Synthetize a rule as close as possible to the trace.
         Print all the unstatisfiable steps and highlight anomalies.
@@ -208,11 +207,12 @@ class Rule:
         cost = []
         
         negative_sign = ['<','<=']
-        for variable in self.variables.values():
-            if self.variable_sign[variable] in negative_sign:
-                cost.append(-variable)
-            else: 
-                cost.append(variable)
+        for variable_set in self.variable_constraint_set:
+            for variable in variable_set:
+                if self.variable_sign[variable] in negative_sign:
+                    cost.append(-variable)
+                else: 
+                    cost.append(variable)
 
         total_cost = z3.Sum(cost)
         self.solver.add(interval_cost == total_cost)
@@ -220,6 +220,7 @@ class Rule:
 
         # check if SAT or UNSAT
         print('Check Formulas')
+        #print(self.solver)
         result = self.solver.check()
         # print(result)
 
@@ -336,7 +337,7 @@ class Rule:
         """
         self.solver.push()
         model = self.findMaxSmtInRule()
-        #self.synthetize_rule(model)
-        self.print_rule_result(model)
+        self.synthetize_rule(model)
+        #self.print_rule_result(model)
         self.solver.pop()
         print()
