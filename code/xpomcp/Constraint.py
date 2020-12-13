@@ -5,6 +5,7 @@ class Constraint:
         
         self.belief = None
         self.operator = formula.decl().name()
+        self.formula = formula
         
         for variable in formula.children():
             if z3.is_const(variable) and variable.decl().kind() == z3.Z3_OP_UNINTERPRETED:
@@ -17,6 +18,9 @@ class Constraint:
             return "{} {} {}".format(self.belief,self.operator,self.variable)
         else: 
             return "{} {} {}".format(self.state,self.operator,self.variable)
+        
+    
+    
     
     
                 

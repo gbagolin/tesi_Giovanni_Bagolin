@@ -66,7 +66,6 @@ class Rule:
         eg: Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         output: z3.And(x1 == 1,x2 == 2, x3 == 3)
         '''
-
         variablesInFormula = set()
         variables_added = set()
         
@@ -77,6 +76,7 @@ class Rule:
         # Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         for constraint in formula:
             constr = Constraint(constraint)
+            
             variablesInFormula.add(constr.variable)
             self.variable_sign[constr.variable] = constr.operator
             self.variable_state[constr.variable] = constr.state
@@ -85,13 +85,6 @@ class Rule:
         self.variable_constraint_set.append(variablesInFormula)
 
         self.constraints.append(and_constraint_list)
-    
-    def addFormula(self, *formula):
-        '''
-        Assign the z3 formula that will be processed by the optimizer
-        '''
-        formula = list(formula)
-        self.formula = z3.Or(formula)
         
     def addHardConstraint(self,*constraints):
         '''
@@ -115,17 +108,13 @@ class Rule:
                 subrules = []
                 
                 for constraints_in_and in self.constraints: 
-                    str_formula = ""
+                    subrule = []
                     
                     for i, constraint in enumerate(constraints_in_and): 
                         constraint.belief = belief[constraint.state]
+                        subrule.append(eval(constraint.__str__(),{},self.variables))
                         
-                        if i > 0:
-                            str_formula += ','
-                        
-                        str_formula += constraint.__str__()
-
-                    subrules.append(z3.And(eval(str_formula,{}, self.variables)))
+                    subrules.append(z3.And(subrule))
                     
                 formula = z3.Or(subrules)
 
@@ -332,7 +321,7 @@ class Rule:
         """
         self.solver.push()
         model = self.findMaxSmtInRule()
-        self.synthetize_rule(model)
-        #self.print_rule_result(model)
+        #self.synthetize_rule(model)
+        self.print_rule_result(model)
         self.solver.pop()
         print()
