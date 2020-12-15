@@ -81,8 +81,16 @@ class Rule:
             self.variable_sign[constr.variable] = constr.operator
             self.variable_state[constr.variable] = constr.state
             and_constraint_list.append(constr)
-                     
+            
         self.variable_constraint_set.append(variablesInFormula)
+            
+        for i in range(len(variablesInFormula)): 
+            var = self.declareVariable('added_{}_{}'.format(i,len(self.constraints)))
+            variables_added.add(var)
+            
+        total_sum = z3.Sum(list(variables_added) + list(variablesInFormula))
+        
+        self.solver.add(total_sum == 1.0)
 
         self.constraints.append(and_constraint_list)
         
@@ -319,9 +327,9 @@ class Rule:
         """
         synthetize each rule
         """
-        self.solver.push()
+        #self.solver.push()
         model = self.findMaxSmtInRule()
-        #self.synthetize_rule(model)
-        self.print_rule_result(model)
-        self.solver.pop()
+        self.synthetize_rule(model)
+        #self.print_rule_result(model)
+        #self.solver.pop()
         print()

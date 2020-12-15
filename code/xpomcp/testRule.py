@@ -22,8 +22,8 @@ if __name__ == "__main__":
     x4 = rule.declareVariable('x4')
     
     rule.addConstraint(x1 >= 2)
-    rule.addConstraint(x2 >= 1, x3 >= 2)
     rule.addConstraint(x4 <= 0)
+    rule.addConstraint(x2 >= 1, x3 >= 2)
     rule.addHardConstraint(x1 >= 0.70)
     
     rule.solve()
