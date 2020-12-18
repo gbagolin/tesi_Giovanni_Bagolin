@@ -2,32 +2,16 @@ import z3
 import math
 import re
 import random
+import copy
+import pdb
 
 from Problem import Problem
 from DummyVar import DummyVar
 from Constraint import Constraint
 from exceptions.OperandError import OperandError
-
-import pdb
-
-def Hellinger_distance(P, Q):
-        """
-        Hellinger_distance between two probability distribution.
-        """
-        dist = 0.0
-        for p, q in zip(P, Q):
-            dist += (math.sqrt(p) - math.sqrt(q)) ** 2
-
-        dist = math.sqrt(dist)
-        dist /= math.sqrt(2)
-
-        return dist
-
-def to_real(x):
-    """
-    Convert Z3 Fractional numbers into floating points
-    """
-    return float(x.numerator_as_long()/x.denominator_as_long())
+from utilities.util import *
+from Result import Result
+from Run import Run
 
 class Rule:
 
@@ -45,7 +29,7 @@ class Rule:
         self.variable_state = {}
         self.threshold = threshold
         self.variable_constraint_set = []
-        
+        self.result = None
 
     def declareVariable(self, variableName):
         '''
@@ -159,26 +143,7 @@ class Rule:
         # return a model that satisfy all the hard clauses and the maximum number of soft clauses
         # print(best_model)
         return best_model
-
-    def print_rule_result(self, model):
-        """
-        pretty printing of rules, give a certain model
-        """
-        print('rule: do action {} if: '.format(self.actions[0] if len(self.actions) == 1 else self.actions), end = '')
-
-        for i, variables in enumerate(self.variable_constraint_set):
-            if i > 0:
-                print(" OR ",end = '')
-
-            print("(",end ='')
-            for j, variable in enumerate(variables):
-                if j > 0:
-                    print(" AND ", end ='')
-                print("P_{} {} {:.3f}".format(self.variable_state[variable],self.variable_sign[variable],to_real(model[variable])),end= '')
-            print(")",end = '')
-            
-        print()
-
+    
     def synthetize_rule(self, model):
         
         """
@@ -229,7 +194,8 @@ class Rule:
             return
 
         # print results
-        self.print_rule_result(m)
+        self.result = Result(rule_obj=copy.copy(self), model = m)
+        print(self.result)
 
         # generate 1000 random points inside the rule
         rule_points = []
@@ -290,46 +256,50 @@ class Rule:
             Hellinger_min.append(min(hel_dst))
 
         # print unsatisfiable steps in decreasing order of hellinger distance
-        print('Unsatisfiable steps same action:')
+        
         #anomaly_positions = []
         for soft, hel in [[self.soft_constr[x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
-            print("({})".format(failed_step_counter),end='')
+            is_anomaly = False
             if hel > self.threshold:
-                print('ANOMALY: ', end='')
-            
-            print('{} step {}: action {} with belief '.format(self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step]), end='')
-            
+                is_anomaly = True
+               
+            state_beliefs = []
             for state in self.problem.states:
-                print('P_{} = {:.3f} '.format(state,self.problem.belief_in_runs[soft.run][soft.step][state]), end = '')
-                
-            print('--- Hellinger = {}'.format(hel))
+                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+            
+            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = hel, is_anomaly = is_anomaly)
+            
+            self.result.add_run(run)
             
             failed_step_counter += 1
-
+            
         failed_steps_same_action = []
         for num, soft in enumerate(self.soft_constr):
             if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions) :
                 continue
             failed_steps_same_action.append(soft)
 
-        # print unsatisfiable steps in decreasing order of hellinger distance
-        if len(failed_steps_same_action) > 0:
-            print('Unsatisfiable steps different action:')
+        
         #anomaly_positions = []
         for soft in failed_steps_same_action:
-            print('{} step {}: action {} with belief '.format(self.problem.run_folders[soft.run], soft.step, self.problem.actions_in_runs[soft.run][soft.step]), end='')
+            state_beliefs = []
             for state in self.problem.states:
-                print('P_{} = {:.3f} '.format(state,self.problem.belief_in_runs[soft.run][soft.step][state]), end = '')
-            print()
+                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+            
+            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = None, is_anomaly = False)
+            self.result.add_run(run)
+            
             failed_step_counter += 1
-
+            
+        self.result.print_unsat_steps()
+            
     def solve(self):
         """
         synthetize each rule
         """
-        #self.solver.push()
+        self.solver.push()
         model = self.findMaxSmtInRule()
         self.synthetize_rule(model)
         #self.print_rule_result(model)
-        #self.solver.pop()
+        self.solver.pop()
         print()
