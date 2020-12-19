@@ -63,7 +63,7 @@ class Rule:
             
             variablesInFormula.add(constr.variable)
             self.variable_sign[constr.variable] = constr.operator
-            self.variable_state[constr.variable] = constr.state
+            self.variable_state[constr.variable] = self.problem.states[constr.state]
             and_constraint_list.append(constr)
             
         self.variable_constraint_set.append(variablesInFormula)
@@ -103,7 +103,7 @@ class Rule:
                     subrule = []
                     
                     for i, constraint in enumerate(constraints_in_and): 
-                        constraint.belief = belief[constraint.state]
+                        constraint.belief = belief[self.problem.states[constraint.state]]
                         subrule.append(eval(constraint.__str__(),{},self.variables))
                         
                     subrules.append(z3.And(subrule))
