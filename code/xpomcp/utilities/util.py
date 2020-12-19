@@ -18,3 +18,12 @@ def Hellinger_distance(P, Q):
         dist /= math.sqrt(2)
 
         return dist
+    
+XES_NES = { 'xes': 'rttp://www.w3.org/2001/XMLSchema' }
+
+def node_from_key(root, key):
+    for atr in root:
+        if 'key' in atr.attrib and atr.attrib['key'] == key:
+            return atr
+    return None
+
