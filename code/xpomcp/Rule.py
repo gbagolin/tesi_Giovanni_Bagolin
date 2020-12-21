@@ -30,6 +30,7 @@ class Rule:
         self.threshold = threshold
         self.variable_constraint_set = []
         self.result = None
+        self.model = None 
 
     def declareVariable(self, variableName):
         '''
@@ -38,8 +39,6 @@ class Rule:
         x = z3.Real(variableName)
         self.solver.add(0.0 < x)
         self.solver.add(x <= 1.0)
-        if variableName.find("added") != -1: 
-            return x
         newVariable = {variableName : x}
         self.variables.update(newVariable)
         return x
@@ -51,8 +50,6 @@ class Rule:
         output: z3.And(x1 == 1,x2 == 2, x3 == 3)
         '''
         variablesInFormula = set()
-        variables_added = set()
-        
         and_constraint_list = []
         # set probabilities limits for free variables in args
         #a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
@@ -60,22 +57,12 @@ class Rule:
         # Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         for constraint in formula:
             constr = Constraint(constraint)
-            
             variablesInFormula.add(constr.variable)
             self.variable_sign[constr.variable] = constr.operator
             self.variable_state[constr.variable] = self.problem.states[constr.state]
             and_constraint_list.append(constr)
             
         self.variable_constraint_set.append(variablesInFormula)
-            
-        for i in range(len(variablesInFormula)): 
-            var = self.declareVariable('added_{}_{}'.format(i,len(self.constraints)))
-            variables_added.add(var)
-            
-        total_sum = z3.Sum(list(variables_added) + list(variablesInFormula))
-        
-        self.solver.add(total_sum == 1.0)
-
         self.constraints.append(and_constraint_list)
         
     def addHardConstraint(self,*constraints):
@@ -87,13 +74,10 @@ class Rule:
     
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")
-
         formula = None
 
         for run in range(len(self.problem.belief_in_runs)):
-
             for bel, belief in enumerate(self.problem.belief_in_runs[run]):
-                
                 # generate boolean var for soft constraints
                 soft = z3.Bool('b_{}_{}'.format(run, bel))
                 self.soft_constr.append(DummyVar(soft, run, bel))
@@ -101,15 +85,12 @@ class Rule:
                 
                 for constraints_in_and in self.constraints: 
                     subrule = []
-                    
                     for i, constraint in enumerate(constraints_in_and): 
                         constraint.belief = belief[self.problem.states[constraint.state]]
                         subrule.append(eval(constraint.__str__(),{},self.variables))
                         
                     subrules.append(z3.And(subrule))
-                    
                 formula = z3.Or(subrules)
-
                 #la mia regola deve spiegare se ha fatto l'azione, altrimenti non deve spiegarla.
                 if self.problem.actions_in_runs[run][bel] not in self.actions: #vedo se l'azione scelta viene rispettata dal bielef
                     formula = z3.Not(formula)
@@ -122,11 +103,10 @@ class Rule:
         high_threshold = len(self.soft_constr)
         final_threshold = -1
         best_model = []
-
+        
         #uso una ricerca binaria per risolvere l'or gigante definito sopra!
         while low_threshold <= high_threshold:
             self.solver.push() #risolutore incrementale, consente di evitare di rifare calcoli creando un ambiente virtuale
-
             threshold = (low_threshold + high_threshold) // 2
             #Pble pseudo boolean less equal
             self.solver.add(z3.PbLe([(soft.literal, 1) for soft in self.soft_constr], threshold)) #l'add viene fatto sull'ambiente virtuale appena creato.
@@ -183,6 +163,7 @@ class Rule:
         # print(result)
 
         m = self.solver.model()
+        self.model = m
         # remove intervall optimization requirements
         self.solver.pop()
 

@@ -7,7 +7,7 @@ class Result:
         self.model = model
         self.rule_unsatisfied = []
     
-    def _print_rule(self,model):
+    def _print_rule(self):
         """
         pretty printing of rules, give a certain model
         """
@@ -22,7 +22,7 @@ class Result:
             for j, variable in enumerate(variables):
                 if j > 0:
                     rule += " AND "
-                rule +="P_{} {} {:.3f}".format(self.rule_obj.variable_state[variable],self.rule_obj.variable_sign[variable],to_real(model[variable]))
+                rule +="P_{} {} {:.3f}".format(self.rule_obj.variable_state[variable],self.rule_obj.variable_sign[variable],to_real(self.model[variable]))
             rule += ")"
         
         self.rule = rule
@@ -38,7 +38,7 @@ class Result:
             print(unsat_rule)
             
     def __str__(self):
-        self._print_rule(self.model)
+        self._print_rule()
         return self.rule
         
 
