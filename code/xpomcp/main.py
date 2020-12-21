@@ -8,12 +8,14 @@ import pdb
 
 if __name__ == "__main__":
     # parse input files
-    if len(sys.argv) == 2:
-        xes_log = str(sys.argv[1])
+    xes_log = []
+    if len(sys.argv) >= 2:
+        for i in range(1,len(sys.argv)): 
+            xes_log.append(str(sys.argv[i]))
     else:
         raise FileNotFoundError("Please, provide the trace directory")
     
-    problem = Tiger_Problem(xes_log=xes_log,states=["tiger left", "tiger right"], actions=["listen", "open left", "open right"])
+    problem = Tiger_Problem(xes_log=xes_log[0],states=["tiger left", "tiger right"], actions=["listen", "open left", "open right"])
 
     rule = Rule(actions = ["open left"], problem = problem)
     x1 = rule.declareVariable('x1')
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     # rule.addConstraint(x1 <= 0,x2 <= 1)
     # rule.solve()
     
-    # problem = Velocity_Regulation_Problem(xes_log=xes_log,states=[0,1,2], actions=[0,1,2])
+    # problem = Velocity_Regulation_Problem(xes_log=xes_log[0],states=[0,1,2], actions=[0,1,2])
 
     # rule = Rule(actions = [0], problem = problem)
     
@@ -46,4 +48,4 @@ if __name__ == "__main__":
     # rule.addHardConstraint(x1 >= 0.70)
     
     # rule.solve()
-   
+    
