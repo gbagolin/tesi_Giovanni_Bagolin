@@ -14,6 +14,10 @@ class Problem:
 
     def __init__(self,xes_log = None,states = None,actions = None,beliefs = None):
         self.states = states
+        
+        for i in range(len(states)): 
+            states[i].position_in_problem_array = i 
+        
         self.actions = actions
         self.beliefs = beliefs
 

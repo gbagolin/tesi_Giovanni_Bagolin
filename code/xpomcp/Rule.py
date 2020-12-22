@@ -86,7 +86,7 @@ class Rule:
                 for constraints_in_and in self.constraints: 
                     subrule = []
                     for i, constraint in enumerate(constraints_in_and): 
-                        constraint.belief = belief[self.problem.states[constraint.state]]
+                        constraint.belief = belief[self.problem.states[constraint.state].state_name]
                         subrule.append(eval(constraint.__str__(),{},self.variables))
                         
                     subrules.append(z3.And(subrule))
@@ -110,6 +110,7 @@ class Rule:
             threshold = (low_threshold + high_threshold) // 2
             #Pble pseudo boolean less equal
             self.solver.add(z3.PbLe([(soft.literal, 1) for soft in self.soft_constr], threshold)) #l'add viene fatto sull'ambiente virtuale appena creato.
+            #print(self.solver)
             result = self.solver.check()
             if result == z3.sat:
                 final_threshold = threshold

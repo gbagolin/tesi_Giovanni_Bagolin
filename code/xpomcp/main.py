@@ -1,6 +1,7 @@
 from Rule import Rule
 from Velocity_Regulation_Problem import Velocity_Regulation_Problem
 from Tiger_Problem import Tiger_Problem
+from State import State
 
 import sys
 import z3
@@ -15,12 +16,16 @@ if __name__ == "__main__":
     else:
         raise FileNotFoundError("Please, provide the trace directory")
     
-    problem = Tiger_Problem(xes_log=xes_log[0],states=["tiger left", "tiger right"], actions=["listen", "open left", "open right"])
+    #problem = Tiger_Problem(xes_log=xes_log[0],states=["tiger left", "tiger right"], actions=["listen", "open left", "open right"])
 
-    rule = Rule(actions = ["open left"], problem = problem)
-    x1 = rule.declareVariable('x1')
-    rule.addConstraint(x1 >= 1)
-    rule.solve()
+    # rule = Rule(actions = ["open left"], problem = problem)
+    # x1 = rule.declareVariable('x1')
+    # s_left = State("tiger left")
+    # rule.addConstraint(x1 >= s_left.probability_of())
+    # rule.solve()
+    
+    # rule2 = Rule(actions = ["open left"], problem = problem)
+    # x2 = rule2.declareVariable('x2')
     
     # rule = Rule(actions = ["open right"], problem = problem)
     # x1 = rule.declareVariable('x1')
@@ -31,7 +36,15 @@ if __name__ == "__main__":
     # x1 = rule.declareVariable('x1')
     # x2 = rule.declareVariable('x2')
     # rule.addConstraint(x1 <= 0,x2 <= 1)
+    
     # rule.solve()
+    state_left = State("tiger left")
+    state_right = State("tiger right")
+    problem = Tiger_Problem(xes_log=xes_log[0],states=[state_left,state_right], actions=["listen", "open left", "open right"])
+    rule = Rule(actions = ["open left"], problem = problem)
+    x1 = rule.declareVariable('x1')
+    rule.addConstraint(x1 >= state_right.get_probability())
+    rule.solve()
     
     # problem = Velocity_Regulation_Problem(xes_log=xes_log[0],states=[0,1,2], actions=[0,1,2])
 
