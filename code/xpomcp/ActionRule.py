@@ -13,7 +13,7 @@ from utilities.util import *
 from Result import Result
 from Run import Run
 
-class Rule:
+class ActionRule:
 
     def __init__(self, problem=None, ruleNum=0, id=None, actions=None, formula=None,threshold = 0.10):
         self.id = id
@@ -29,6 +29,7 @@ class Rule:
         self.variable_state = {}
         self.threshold = threshold
         self.variable_constraint_set = []
+        self.hard_constraint = []
         self.result = None
         self.model = None 
 
@@ -52,8 +53,8 @@ class Rule:
         variablesInFormula = set()
         and_constraint_list = []
         # set probabilities limits for free variables in args
-        #a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
-        #we want to put these constraints in z3.And only if they are passed all together like this: 
+        # a formula could be of the form: x1 == 1, x2 == 2, x3 == 3
+        # we want to put these constraints in z3.And only if they are passed all together like this: 
         # Rule.addConstraint(x1 == 1, x2 == 2, x3 == 3)
         for constraint in formula:
             constr = Constraint(constraint)
@@ -71,6 +72,7 @@ class Rule:
         ''' 
         for constraint in constraints:
             self.solver.add(constraint)
+            self.hard_constraint.append(constraint)
     
     def findMaxSmtInRule(self):
         print("Solving MAX-SMT problem")

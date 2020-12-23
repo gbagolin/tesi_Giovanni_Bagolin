@@ -1,4 +1,5 @@
-from Rule import Rule
+from ActionRule import ActionRule
+from FinalRule import FinalRule
 from Velocity_Regulation_Problem import Velocity_Regulation_Problem
 from Tiger_Problem import Tiger_Problem
 
@@ -17,20 +18,36 @@ if __name__ == "__main__":
     
     problem = Tiger_Problem(xes_log=xes_log[0],states=["tiger left", "tiger right"], actions=["listen", "open left", "open right"])
 
-    rule = Rule(actions = ["open left"], problem = problem)
+    rule = ActionRule(actions = ["open left"], problem = problem)
     x1 = rule.declareVariable('x1')
+    x4 = rule.declareVariable('x4')
     rule.addConstraint(x1 >= 1)
-    rule.solve()
+    rule.addConstraint(x4 <= 0)
+    #rule.solve()
     
     # rule = Rule(actions = ["open right"], problem = problem)
     # x1 = rule.declareVariable('x1')
     # rule.addConstraint(x1 >= 0)
     # rule.solve()
     
-    # rule = Rule(actions = ["listen"], problem = problem)
-    # x1 = rule.declareVariable('x1')
-    # x2 = rule.declareVariable('x2')
-    # rule.addConstraint(x1 <= 0,x2 <= 1)
+    rule2 = ActionRule(actions = ["listen"], problem = problem)
+    x2 = rule2.declareVariable('x2')
+    x3 = rule2.declareVariable('x3')
+    rule2.addConstraint(x2 <= 0,x3 <= 1)
+    
+    final_rule = FinalRule([rule,rule2],problem = problem)
+    final_rule.add_constraint(x2 == x3)
+    
+    
+    
+    print(final_rule.variables)
+    print(final_rule.constraints)
+    # for constranint_list in final_rule.constraints: 
+    #     for constraint in constranint_list: 
+    #         print(constraint)
+            
+    print(final_rule.hard_constraint)
+    
     # rule.solve()
     
     # problem = Velocity_Regulation_Problem(xes_log=xes_log[0],states=[0,1,2], actions=[0,1,2])
