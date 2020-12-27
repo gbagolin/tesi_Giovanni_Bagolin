@@ -1,14 +1,26 @@
 import z3
+import math
+import re
+import random
+import copy
+import pdb
 
-from Constraint import Constraint
+from Problem import Problem
 from DummyVar import DummyVar
+from Constraint import Constraint
+from exceptions.OperandError import OperandError
+from utilities.util import *
+from Result import Result
+from Run import Run
 
 class FinalRule: 
-    def __init__(self,rule_list,problem):
+    def __init__(self,rule_list,problem,threshold):
         self.rule_list = rule_list
         self.solver = z3.Optimize()
         self._set_attributes()
         self.problem = problem
+        self.soft_constr = []
+        self.threshold = threshold
         
     def _set_attributes(self): 
         self.variables = {}
@@ -17,6 +29,7 @@ class FinalRule:
         self.variable_constraint_set = []
         self.constraints = []
         self.hard_constraint = []
+        self.actions = []
         
         for rule in self.rule_list:
             self.variables |= rule.variables
@@ -42,27 +55,220 @@ class FinalRule:
         print("Solving MAX-SMT problem")
         formula = None
         
-        for run in range(len(self.problem.belief_in_runs)):
-            for bel, belief in enumerate(self.problem.belief_in_runs[run]):
-                for rule_num, rule in enumerate(self.constraints): 
+        for rule_num, rule in enumerate(self.rule_list):
+            for run in range(len(self.problem.belief_in_runs)):
+                for bel, belief in enumerate(self.problem.belief_in_runs[run]):
                     # generate boolean var for soft constraints
                     soft = z3.Bool('b_{}_{}_{}'.format(run, bel,rule_num))
                     self.soft_constr.append(DummyVar(soft, run, bel,rule_num))
                     subrules = []
-                    
-                    for constraints_in_and in self.constraints: 
+
+                    for constraints_in_and in rule.constraints: 
                         subrule = []
                         for i, constraint in enumerate(constraints_in_and): 
                             constraint.belief = belief[self.problem.states[constraint.state]]
                             subrule.append(eval(constraint.__str__(),{},self.variables))
-                            
+
                         subrules.append(z3.And(subrule))
                     formula = z3.Or(subrules)
-                    
-                    if self.problem.actions_in_runs[run][bel] not in self.actions: 
+
+                    if self.problem.actions_in_runs[run][bel] not in rule.actions: 
                         formula = z3.Not(formula)
+
+                    self.solver.add(z3.Or(soft, formula))               
+        # solve MAX-SMT problem
+        low_threshold = 0
+        total_soft_constr = len(self.soft_constr)
+        high_threshold = len(self.soft_constr)
+        final_threshold = -1
+        best_model = []
+        
+        #uso una ricerca binaria per risolvere l'or gigante definito sopra!
+        while low_threshold <= high_threshold:
+            self.solver.push() #risolutore incrementale, consente di evitare di rifare calcoli creando un ambiente virtuale
+            threshold = (low_threshold + high_threshold) // 2
+            #Pble pseudo boolean less equal
+            self.solver.add(z3.PbLe([(soft.literal, 1) for soft in self.soft_constr], threshold)) #l'add viene fatto sull'ambiente virtuale appena creato.
+            result = self.solver.check()
+            if result == z3.sat:
+                final_threshold = threshold
+                best_model = self.solver.model()
+                high_threshold = threshold - 1
+            else:
+                low_threshold = threshold + 1
+            self.solver.pop()
+
+        print('fail to satisfy {} steps out of {}'.format(final_threshold, total_soft_constr))
+        # return a model that satisfy all the hard clauses and the maximum number of soft clauses
+        # print(best_model)
+        return best_model
+    
+    def synthetize_rule(self, model):
+        
+        """
+        Synthetize a rule as close as possible to the trace.
+        Print all the unstatisfiable steps and highlight anomalies.
+        """
+        self.solver.push()
+
+        # fix dummy variables
+        for soft in self.soft_constr:
+            if model[soft.literal] == True:
+                self.solver.add(soft.literal)
+            elif model[soft.literal] == False:
+                self.solver.add(z3.Not(soft.literal))
+
+        # try to optimize intervals
+        # cerco di trovare i numeri più grandi che soddisfano la regola.
+        interval_cost = z3.Real('interval_cost')
+        cost = []
+        
+        negative_sign = ['<','<=']
+        for variable_set in self.variable_constraint_set:
+            for variable in variable_set:
+                if self.variable_sign[variable] in negative_sign:
+                    cost.append(-variable)
+                else: 
+                    cost.append(variable)
+
+        total_cost = z3.Sum(cost)
+        self.solver.add(interval_cost == total_cost)
+        self.solver.minimize(interval_cost)
+
+        # check if SAT or UNSAT
+        print('Check Formulas')
+        #print(self.solver)
+        result = self.solver.check()
+        # print(result)
+
+        m = self.solver.model()
+        self.model = m
+        # remove intervall optimization requirements
+        self.solver.pop()
+
+        # exit if unsat
+        #in teoria non potrebbe mai essere unsat perchè l'abbiamo già risolto prima, ora abbiamo spostato solo le threshold.
+        #se è unsat mi dovrebbe dare delle prove. (NON guardare i log)
+        if result != z3.sat:
+            print("IMPOSSIBLE TO SATISFY, ):")
+            return
+
+        # print results
+        self.result = Result(rule_obj=copy.copy(self), model = m,type = "final_rule")
+        print(self.result)
+        
+        
+        rule_points_all_rules = []
+        
+        for rule in self.rule_list: 
+            # generate 1000 random points inside the rule
+            rule_points = []
+            generated_points = 0
+            #crei dei punti perchè potrei non aver visto tutti i casi strani dalle traccie.
+            while generated_points < 1000:
+                point = self.problem.generate_points()
+
+                satisfy_a_constraint = False
+                for i, and_constraint in enumerate(rule.constraints):
+                    is_ok = True
+                    for constraint in and_constraint: 
+                            threshold = to_real(m[constraint.variable])
+                            if constraint.operator == '<':
+                                if point[constraint.state] > threshold:
+                                    is_ok = False
+                                    break
+                            elif constraint.operator == '>':
+                                if point[constraint.state] < threshold:
+                                    is_ok = False
+                                    break
+                            elif constraint.operator == '<=':
+                                if point[constraint.state] >= threshold:
+                                    is_ok = False
+                                    break
+
+                            elif constraint.operator == '>=':
+                                if point[constraint.state] <= threshold:
+                                    is_ok = False
+                                    break
+                            elif constraint.operator == '==':
+                                if point[constraint.state] == threshold:
+                                    is_ok = False
+                                    break
+                            else: 
+                                raise OperandError(constraint.operator)
+
+                    if not is_ok:
+                        continue
+
+                    satisfy_a_constraint = True
+                    break
+
+                if satisfy_a_constraint:
+                    rule_points.append(point)
+                    generated_points += 1
                     
-                    self.solver.add(z3.Or(soft, formula)) 
+            rule_points_all_rules.append(rule_points)
+
+        # Hellinger distance of unsatisfiable steps
+        failed_rules_diff_action = []
+        Hellinger_min = []
+        failed_step_counter = 0
+        for num, soft in enumerate(self.soft_constr):
+            if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
+                continue
+            failed_rules_diff_action.append(num)
+            P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in self.problem.states]
+            hel_dst = [Hellinger_distance(P, Q) for Q in rule_points_all_rules]
+            Hellinger_min.append(min(hel_dst))
+
+        # print unsatisfiable steps in decreasing order of hellinger distance
+        
+        #anomaly_positions = []
+        for soft, hel in [[self.soft_constr[x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
+            is_anomaly = False
+            if hel > self.threshold:
+                is_anomaly = True
+               
+            state_beliefs = []
+            for state in self.problem.states:
+                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+            
+            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = hel, is_anomaly = is_anomaly)
+            
+            self.result.add_run(run)
+            
+            failed_step_counter += 1
+            
+        failed_steps_same_action = []
+        for num, soft in enumerate(self.soft_constr):
+            if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions) :
+                continue
+            failed_steps_same_action.append(soft)
+
+        
+        #anomaly_positions = []
+        for soft in failed_steps_same_action:
+            state_beliefs = []
+            for state in self.problem.states:
+                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+            
+            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = None, is_anomaly = False)
+            self.result.add_run(run)
+            
+            failed_step_counter += 1
+            
+        self.result.print_unsat_steps()
+            
+    def solve(self):
+        """
+        synthetize each rule
+        """
+        self.solver.push()
+        model = self.find_max_smt_in_rules()
+        self.synthetize_rule(model)
+        #self.print_rule_result(model)
+        self.solver.pop()
+        print()
         
             
 
