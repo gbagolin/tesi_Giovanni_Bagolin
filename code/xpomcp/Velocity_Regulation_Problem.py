@@ -11,7 +11,7 @@ from Problem import Problem
 
 class Velocity_Regulation_Problem(Problem):
 
-    def __init__(self, xes_log = None,states = None,actions = None,beliefs = None):
+    def __init__(self, xes_log = None,states = [0,1,2],actions = [0,1,2],beliefs = None):
         super().__init__(xes_log,states,actions)
         self.segments_in_runs = []
         self.parse_xes(xes = xes_log)

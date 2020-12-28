@@ -13,7 +13,7 @@ from utilities.util import *
 from Result import Result
 from Run import Run
 
-class FinalRule: 
+class RuleTemplate: 
     def __init__(self,rule_list,problem,threshold):
         self.rule_list = rule_list
         self.solver = z3.Optimize()
@@ -230,7 +230,24 @@ class FinalRule:
                 self.result.add_run(run)
                 failed_step_counter += 1
 
+            failed_steps_same_action = []
+            for num, soft in enumerate(self.soft_constr):
+                if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in rule.actions) :
+                    continue
+                failed_steps_same_action.append(soft)
+            
+            for soft in failed_steps_same_action:
+                state_beliefs = []
+                for state in self.problem.states:
+                    state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+                
+                run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = None, is_anomaly = False)
+                self.result.add_run_different_action(run)
+                
+                failed_step_counter += 1
+                
             self.result.print_unsat_steps(rule.actions)
+            #self.result.print_unsat_steps_different_action()
             self.result.reset_rule_unsatisfied()
             
     def solve(self):

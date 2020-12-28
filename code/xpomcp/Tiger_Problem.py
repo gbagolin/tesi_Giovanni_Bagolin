@@ -13,10 +13,10 @@ from Run import Run
 
 class Tiger_Problem(Problem):
 
-    def __init__(self, xes_log = None,states = None,actions = None,num_traces_to_analyze = None):
+    def __init__(self, xes_log = None,states = ["tiger left", "tiger right"],actions = ["listen", "open left", "open right"],num_traces_to_analyze = None):
         super().__init__(xes_log,states,actions)
         self.parse_xes(xes = xes_log,num_traces_to_analyze = num_traces_to_analyze)
-        #e.g beliefs = [[{tiger_left: 0.5,tiger_right: 0.5}],[],[] ... n_trace]
+        
     def parse_xes(self, xes,num_traces_to_analyze):
         """
         Parse xes log and build data from traces

@@ -6,12 +6,16 @@ class Result:
         self.rule_obj = rule_obj
         self.model = model
         self.rule_unsatisfied = []
+        self.rule_unsatisfied_different_action = []
+        self.all_rule_unsatisfied_different_action = []
         self.all_rules_unsatisfied = []
         self.type = type
         
     def reset_rule_unsatisfied(self):
         self.all_rules_unsatisfied.append(self.rule_unsatisfied)
+        self.all_rule_unsatisfied_different_action.append(self.rule_unsatisfied_different_action)
         self.rule_unsatisfied = []
+        self.rule_unsatisfied_different_action = []
         
     def _print_rule(self):
         """
@@ -57,13 +61,23 @@ class Result:
     
     def add_run(self,run):
         self.rule_unsatisfied.append(run)
+        
+    def add_run_different_action(self,run):
+        self.rule_unsatisfied_different_action.append(run)
     
     def print_unsat_steps(self,action = ""): 
         self.rule_unsatisfied = sorted(list(set(self.rule_unsatisfied)),key = lambda run : run.hellinger_distance,reverse=True)
         if len(self.rule_unsatisfied) > 0: 
-            print(f'Unsatisfiable steps: {action}')
+            print(f'Unsatisfiable steps action: {action}')
             
         for i,unsat_rule in enumerate(self.rule_unsatisfied): 
+            print(f'{i} {unsat_rule}')
+
+    def print_unsat_steps_different_action(self): 
+        if len(self.rule_unsatisfied) > 0: 
+            print('Unsatisfiable steps different action:')
+            
+        for i,unsat_rule in enumerate(self.rule_unsatisfied_different_action): 
             print(f'{i} {unsat_rule}')
             
     def __str__(self):
