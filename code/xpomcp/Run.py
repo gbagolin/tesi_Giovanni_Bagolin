@@ -24,3 +24,9 @@ class Run:
             to_return += '--- Hellinger = {}'.format(self.hellinger_distance)
         
         return to_return
+    
+    def __eq__(self, other):
+        return self.__str__() == other.__str__() 
+
+    def __hash__(self):
+        return hash(self.__str__())

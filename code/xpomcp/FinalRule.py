@@ -133,7 +133,7 @@ class FinalRule:
 
         total_cost = z3.Sum(cost)
         self.solver.add(interval_cost == total_cost)
-        self.solver.minimize(interval_cost)
+        self.solver.maximize(interval_cost)
 
         # check if SAT or UNSAT
         print('Check Formulas')
@@ -156,9 +156,6 @@ class FinalRule:
         # print results
         self.result = Result(rule_obj=copy.copy(self), model = m,type = "final_rule")
         print(self.result)
-        
-        
-        rule_points_all_rules = []
         
         for rule in self.rule_list: 
             # generate 1000 random points inside the rule
@@ -206,58 +203,35 @@ class FinalRule:
                 if satisfy_a_constraint:
                     rule_points.append(point)
                     generated_points += 1
-                    
-            rule_points_all_rules.append(rule_points)
 
-        # Hellinger distance of unsatisfiable steps
-        failed_rules_diff_action = []
-        Hellinger_min = []
-        failed_step_counter = 0
-        for num, soft in enumerate(self.soft_constr):
-            if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
-                continue
-            failed_rules_diff_action.append(num)
-            P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in self.problem.states]
-            hel_dst = [Hellinger_distance(P, Q) for Q in rule_points_all_rules]
-            Hellinger_min.append(min(hel_dst))
+            # Hellinger distance of unsatisfiable steps
+            failed_rules_diff_action = []
+            Hellinger_min = []
+            failed_step_counter = 0
+            for num, soft in enumerate(self.soft_constr):
+                if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in rule.actions):
+                    continue
+                failed_rules_diff_action.append(num)
+                P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in self.problem.states]
+                hel_dst = [Hellinger_distance(P, Q) for Q in rule_points]
+                Hellinger_min.append(min(hel_dst))
 
-        # print unsatisfiable steps in decreasing order of hellinger distance
-        
-        #anomaly_positions = []
-        for soft, hel in [[self.soft_constr[x], h] for h, x in sorted(zip(Hellinger_min, failed_rules_diff_action), key=lambda pair: pair[0], reverse = True)]:
-            is_anomaly = False
-            if hel > self.threshold:
-                is_anomaly = True
-               
-            state_beliefs = []
-            for state in self.problem.states:
-                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
-            
-            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = hel, is_anomaly = is_anomaly)
-            
-            self.result.add_run(run)
-            
-            failed_step_counter += 1
-            
-        failed_steps_same_action = []
-        for num, soft in enumerate(self.soft_constr):
-            if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions) :
-                continue
-            failed_steps_same_action.append(soft)
+            # print unsatisfiable steps in decreasing order of hellinger distancEe
+            for soft, hel in [[self.soft_constr[x], h] for h, x in zip(Hellinger_min, failed_rules_diff_action)]:
+                is_anomaly = False
+                if hel > self.threshold:
+                    is_anomaly = True
+                
+                state_beliefs = []
+                for state in self.problem.states:
+                    state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
+                
+                run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = hel, is_anomaly = is_anomaly)
+                self.result.add_run(run)
+                failed_step_counter += 1
 
-        
-        #anomaly_positions = []
-        for soft in failed_steps_same_action:
-            state_beliefs = []
-            for state in self.problem.states:
-                state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
-            
-            run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = None, is_anomaly = False)
-            self.result.add_run(run)
-            
-            failed_step_counter += 1
-            
-        self.result.print_unsat_steps()
+            self.result.print_unsat_steps(rule.actions)
+            self.result.reset_rule_unsatisfied()
             
     def solve(self):
         """

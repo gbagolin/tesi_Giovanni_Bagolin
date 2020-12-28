@@ -6,8 +6,13 @@ class Result:
         self.rule_obj = rule_obj
         self.model = model
         self.rule_unsatisfied = []
+        self.all_rules_unsatisfied = []
         self.type = type
-    
+        
+    def reset_rule_unsatisfied(self):
+        self.all_rules_unsatisfied.append(self.rule_unsatisfied)
+        self.rule_unsatisfied = []
+        
     def _print_rule(self):
         """
         pretty printing of rules, give a certain model
@@ -53,12 +58,13 @@ class Result:
     def add_run(self,run):
         self.rule_unsatisfied.append(run)
     
-    def print_unsat_steps(self): 
+    def print_unsat_steps(self,action = ""): 
+        self.rule_unsatisfied = sorted(list(set(self.rule_unsatisfied)),key = lambda run : run.hellinger_distance,reverse=True)
         if len(self.rule_unsatisfied) > 0: 
-            print('Unsatisfiable steps:')
+            print(f'Unsatisfiable steps: {action}')
             
-        for unsat_rule in self.rule_unsatisfied: 
-            print(unsat_rule)
+        for i,unsat_rule in enumerate(self.rule_unsatisfied): 
+            print(f'{i} {unsat_rule}')
             
     def __str__(self):
         if self.type == "action_rule":
