@@ -5,10 +5,6 @@ from abc import ABC, abstractmethod
 
 from utilities.util import * 
 
-#######
-# XES #
-#######
-
 
 class Problem:
 
@@ -16,7 +12,7 @@ class Problem:
         self.states = states
         
         for i in range(len(states)): 
-            states[i].position_in_problem_array = i 
+            states[i].id = i 
             
         self.actions = actions
         self.beliefs = beliefs
