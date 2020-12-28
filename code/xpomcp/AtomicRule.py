@@ -88,7 +88,7 @@ class AtomicRule:
                 for constraints_in_and in self.constraints: 
                     subrule = []
                     for i, constraint in enumerate(constraints_in_and): 
-                        constraint.belief = belief[self.problem.states[constraint.state]]
+                        constraint.belief = belief[self.problem.states[constraint.state].state_name]
                         subrule.append(eval(constraint.__str__(),{},self.variables))
                         
                     subrules.append(z3.And(subrule))
@@ -234,7 +234,7 @@ class AtomicRule:
             if m[soft.literal] == False or not (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
                 continue
             failed_rules_diff_action.append(num)
-            P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in self.problem.states]
+            P = [self.problem.belief_in_runs[soft.run][soft.step][state] for state in map(lambda state: state.state_name, self.problem.states)]
             hel_dst = [Hellinger_distance(P, Q) for Q in rule_points]
             Hellinger_min.append(min(hel_dst))
         # print unsatisfiable steps in decreasing order of hellinger distancEe
@@ -244,22 +244,21 @@ class AtomicRule:
                 is_anomaly = True
             
             state_beliefs = []
-            for state in self.problem.states:
+            for state in map(lambda state: state.state_name,self.problem.states):
                 state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
             
             run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = hel, is_anomaly = is_anomaly)
             self.result.add_run(run)
             failed_step_counter += 1
-            
         failed_steps_same_action = []
         for num, soft in enumerate(self.soft_constr):
-            if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions) :
+            if m[soft.literal] == False or (self.problem.actions_in_runs[soft.run][soft.step] in self.actions):
                 continue
             failed_steps_same_action.append(soft)
         
         for soft in failed_steps_same_action:
             state_beliefs = []
-            for state in self.problem.states:
+            for state in map(lambda state: state.state_name, self.problem.states):
                 state_beliefs.append((state,self.problem.belief_in_runs[soft.run][soft.step][state]))
             
             run = Run(run = self.problem.run_folders[soft.run], step = soft.step, action = self.problem.actions_in_runs[soft.run][soft.step], beliefs = state_beliefs, hellinger_distance = None, is_anomaly = False)

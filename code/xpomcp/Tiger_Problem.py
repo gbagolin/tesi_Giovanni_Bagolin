@@ -41,7 +41,7 @@ class Tiger_Problem(Problem):
 
                 # belief
                 belief_dict = {}
-                for state in self.states:
+                for state in map(lambda state: state.state_name,self.states):
                     belief_dict[state] = 0
                     
                 self.belief_in_runs[-1].append(belief_dict)
@@ -52,9 +52,9 @@ class Tiger_Problem(Problem):
                     self.belief_in_runs[-1][-1][state] += particles
                     
                 total = 0
-                for state in self.states: 
+                for state in map(lambda state: state.state_name,self.states): 
                     total += self.belief_in_runs[-1][-1][state]
                     
-                for state in self.states: 
+                for state in map(lambda state: state.state_name,self.states):
                     self.belief_in_runs[-1][-1][state] /= total
                     

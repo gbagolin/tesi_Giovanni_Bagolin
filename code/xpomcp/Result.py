@@ -32,7 +32,7 @@ class Result:
             for j, variable in enumerate(variables):
                 if j > 0:
                     rule += " AND "
-                rule +="P_{} {} {:.3f}".format(self.rule_obj.variable_state[variable],self.rule_obj.variable_sign[variable],to_real(self.model[variable]))
+                rule +="P_{} {} {:.3f}".format(self.rule_obj.variable_state[variable].state_name,self.rule_obj.variable_sign[variable],to_real(self.model[variable]))
             rule += ")"
         
         self.rule = rule
@@ -54,7 +54,7 @@ class Result:
                 for j, variable in enumerate(variables):
                     if j > 0:
                         rule += " AND "
-                    rule +="P_{} {} {:.3f}".format(rule_obj.variable_state[variable],rule_obj.variable_sign[variable],to_real(self.model[variable]))
+                    rule +="P_{} {} {:.3f}".format(rule_obj.variable_state[variable].state_name,rule_obj.variable_sign[variable],to_real(self.model[variable]))
                 rule += ")"
             rule += "\n"
         self.rule = rule
