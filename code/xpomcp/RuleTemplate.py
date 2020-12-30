@@ -32,9 +32,9 @@ class RuleTemplate:
         self.actions = []
         
         for rule in self.rule_list:
-            self.variables |= rule.variables
-            self.variable_sign |= rule.variable_sign
-            self.variable_state |= rule.variable_state
+            self.variables.update(rule.variables)
+            self.variable_sign.update(rule.variable_sign)
+            self.variable_state.update(rule.variable_state)
             self.variable_constraint_set += rule.variable_constraint_set
             self.constraints.append(rule.constraints)
             self.hard_constraint += rule.hard_constraint
