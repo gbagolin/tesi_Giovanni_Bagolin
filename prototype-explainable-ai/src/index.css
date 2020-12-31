@@ -6,6 +6,37 @@ body {
 }
 
 h3{
-  font-weight: 800;
+  font-weight: 500;
 }
+h1{
+  text-transform: uppercase;  
+  font-weight: 700;
+  font-size: 4em; 
+  line-height: 1.5em; 
+}
+
+.underline{
+  text-decoration: underline;
+  text-decoration-color: yellow;
+}
+
+.margin-top{
+  margin-top: 3em; 
+}
+
+.button{
+  height: 3em; 
+  width: 10em; 
+  background-color: yellow; 
+  color: black; 
+  border-radius: 0.5em;
+  border-color: yellow;
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.border-yellow{
+  border-color:  yellow;
+}
+
 
