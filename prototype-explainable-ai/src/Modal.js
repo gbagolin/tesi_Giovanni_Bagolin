@@ -56,8 +56,7 @@ function Modal() {
             </div>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">View Rule</button>
-            <button type="button" className="btn btn-outline-primary">Next</button>
+            <button type="button" className="btn btn-primary" data-bs-dismiss="modal">View Rule</button>
           </div>
         </div>
       </div>

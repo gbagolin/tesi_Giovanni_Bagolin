@@ -4,8 +4,8 @@ function Title() {
     return (
         <div className="row justify-content-center margin-top">
             <h1 className= "text-center">
-                <div>Short phrase</div>
-                <div className= "underline">Another short phrase</div>
+                <div>Welcome to Explainable AI</div>
+                <div className= "underline">Start writing a rule</div>
             </h1>
         </div>
     )
