@@ -6,14 +6,32 @@ function Modal() {
 
   //const configParsed = JSON.parse(modalConfig);
   const [state, setState] = useState("problem-type");
+  const [problemName,setProblemName] = useState("")
   const [modelTitle, setModelTitle] = useState(modalConfig['problem-type'].title);
-  const [problemsName, setFirstNameError] = useState("");
   const [buttonsName, setButtonsName] = useState(modalConfig['problem-type'].buttonsName);
 
   function goToNextState(id) {
-    const nextState = modalConfig[state]['next:']
+    const nextState = modalConfig[state]['next']
     setState(nextState)
 
+    let _problemName = ""
+    if(state === "problem-type"){
+      setProblemName(id)
+      _problemName = id
+    }
+    
+    setModelTitle(modalConfig[nextState]['title'])
+
+    if (nextState === "action-rule"){
+      setButtonsName(modalConfig[nextState][_problemName]['buttonsName'])
+    }
+    else if(nextState === "state"){
+      setButtonsName(modalConfig[nextState][problemName]['buttonsName'])
+    }
+    else{
+      setButtonsName(modalConfig[nextState]['buttonsName'])
+    }
+    
   }
 
   return (
@@ -30,7 +48,7 @@ function Modal() {
                 <div className="btn-group" role="group" aria-label="Basic outlined example">
                   {buttonsName.map((buttonName) => {
                     return (
-                      <button type="button" id={buttonName} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
+                      <button type="button" key = {buttonName} id={buttonName} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
                     )
                   })}
                 </div>
