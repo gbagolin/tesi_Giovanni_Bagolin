@@ -1,45 +1,45 @@
 import React, { useState } from 'react';
-
-async function getConfig(){
-  let response = await fetch('./modal.json')
-  let json = undefined
-
-  if (response.ok){
-    json = await response.json()
-  }
-  return json
-}
+import modalConfig from './modalConfig.js'
 
 
 function Modal() {
 
-  const [state,setState] = useState("problem-type");
-  const [modelTitle, setModelTitle] = useState("Choose a problem");
-  const [problemsName, setFirstNameError] = useState(["Tiger, Left"]);
-  const [emailAddress, setEmailAddress] = useState("");
-  const [emailAddressError, setEmailAddressError] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  //const configParsed = JSON.parse(modalConfig);
+  const [state, setState] = useState("problem-type");
+  const [modelTitle, setModelTitle] = useState(modalConfig['problem-type'].title);
+  const [problemsName, setFirstNameError] = useState("");
+  const [buttonsName, setButtonsName] = useState(modalConfig['problem-type'].buttonsName);
 
-  (async () => {
-    let response = await fetch('./modal.json')
-    let json = await response.json()
-    console.log(json)
-  })();
+  function goToNextState(id) {
+    const nextState = modalConfig[state]['next:']
+    setState(nextState)
 
-  return (  
-    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="exampleModalLabel">{modelTitle}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  }
+
+  return (
+    <div className="modal fade" id="exampleModal" tabIndex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div className="modal-dialog">
+        <div className="modal-content">
+          <div className="modal-header text-center">
+            <h5 className="modal-title text-center" id="exampleModalLabel">{modelTitle}</h5>
+            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-          <div class="modal-body">
-            
-      </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary">Save changes</button>
+          <div className="modal-body">
+            <div className="container">
+              <div className="row justify-content-center">
+                <div className="btn-group" role="group" aria-label="Basic outlined example">
+                  {buttonsName.map((buttonName) => {
+                    return (
+                      <button type="button" id={buttonName} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">View Rule</button>
+            <button type="button" className="btn btn-outline-primary">Next</button>
           </div>
         </div>
       </div>

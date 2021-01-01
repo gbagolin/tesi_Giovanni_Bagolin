@@ -35,6 +35,11 @@ h1{
   font-weight: 700;
 }
 
+.color-yellow{
+  background-color: yellow; 
+  color: black
+}
+
 .border-yellow{
   border-color:  yellow;
 }

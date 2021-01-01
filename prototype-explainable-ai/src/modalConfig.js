@@ -1,15 +1,16 @@
-{
+const modalConfig = {
     "problem-type": {
         "title": "Choose a problem",
         "numButtons": 2,
         "buttonsName": [
             "Tiger",
             "Velocity Regulation"
-        ]
+        ],
+        "next:" : "action-rule"
     },
     "action-rule": {
         "title": "Choose an action to analyze",
-        "tiger": {
+        "Tiger": {
             "numButtons": 3,
             "buttonsName": [
                 "open left",
@@ -17,14 +18,15 @@
                 "open right"
             ]
         },
-        "velocity-regulation": {
+        "Velocity Regulation": {
             "numButtons": 3,
             "buttonsName": [
                 "slow",
                 "medium",
                 "fast"
             ]
-        }
+        },
+        "next:" : "variable"
     },
     "variable": {
         "title": "Select a variable name",
@@ -33,7 +35,8 @@
             "x1",
             "x2",
             "x3"
-        ]
+        ],
+        "next:" : "operator"
     },
     "operator": {
         "title": "Select operator",
@@ -44,24 +47,28 @@
             "==",
             ">=",
             ">"
-        ]
+        ],
+        "next:" : "state"
     },
     "state": {
         "title": "Select state",
-        "tiger": {
+        "Tiger": {
             "numButtons": 2,
             "buttonsName": [
                 "tiger left",
                 "tiger right"
             ]
         },
-        "velocity-regulation": {
+        "Velocity Regulation": {
             "numButtons": 3,
             "buttonsName": [
                 "low",
                 "medium",
                 "high"
             ]
-        }
+        },
+        "next:" : "variable"
     }
 }
+
+export default modalConfig
