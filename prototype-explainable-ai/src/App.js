@@ -8,11 +8,12 @@ import Modal from './Modal'
 function App() {
   return (
     <>
-      <Navbar />
       <div className="container-fluid">
-        <Title />
-        <Button />
-        <Modal />
+        <main>
+          <Title />
+          <Button />
+          <Modal />
+        </main>
       </div>
     </>
   )
