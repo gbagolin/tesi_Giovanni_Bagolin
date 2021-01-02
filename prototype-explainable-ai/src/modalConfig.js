@@ -6,7 +6,7 @@ const modalConfig = {
             "Tiger",
             "Velocity Regulation"
         ],
-        "next" : "action-rule"
+        "next": "action-rule"
     },
     "action-rule": {
         "title": "Choose an action to analyze",
@@ -26,17 +26,13 @@ const modalConfig = {
                 "fast"
             ]
         },
-        "next" : "variable"
+        "next": "variable"
     },
     "variable": {
         "title": "Select a variable name",
-        "numButtons": 3,
-        "buttonsName": [
-            "x1",
-            "x2",
-            "x3"
-        ],
-        "next" : "operator"
+        "numButtons": 1,
+        "buttonsName": "x1",
+        "next": "operator"
     },
     "operator": {
         "title": "Select operator",
@@ -48,7 +44,7 @@ const modalConfig = {
             ">=",
             ">"
         ],
-        "next" : "state"
+        "next": "state"
     },
     "state": {
         "title": "Select state",
@@ -67,7 +63,17 @@ const modalConfig = {
                 "high"
             ]
         },
-        "next" : "variable"
+        "next": "logic_connector"
+    },
+    "logic_connector": {
+        "title": "Logic connector",
+        "numButtons": 3,
+        "buttonsName": [
+            "I'm done",
+            "AND",
+            "OR"
+        ],
+        "next": "variable"
     }
 }
 

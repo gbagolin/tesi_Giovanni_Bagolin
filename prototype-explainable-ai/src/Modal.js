@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import modalConfig from './modalConfig.js'
 
+function Variable(id, str) {
+    this.id = id
+    this.name = str
+}
 
 function Modal() {
 
@@ -9,6 +13,8 @@ function Modal() {
   const [problemName, setProblemName] = useState("")
   const [modelTitle, setModelTitle] = useState(modalConfig['problem-type'].title);
   const [buttonsName, setButtonsName] = useState(modalConfig['problem-type'].buttonsName);
+  // const [variableInUse, setVariableInUse] = useState([...modalConfig['variable']['buttonsName']])
+  const [variableInUse, setVariableInUse] = useState([JSON.stringify(new Variable(1, modalConfig['variable']['buttonsName']))])
 
   function goToNextState(id) {
     const nextState = modalConfig[state]['next']
@@ -22,11 +28,26 @@ function Modal() {
 
     setModelTitle(modalConfig[nextState]['title'])
 
+    if (state === "variable") {
+      const tmpSet = new Set(variableInUse).add(JSON.stringify(new Variable(parseInt(id),"x" + id)))
+      let variablesArr = [...tmpSet].sort((a,b) => b.id - a.id)
+      console.log(variablesArr)
+      let greatesVariable = variablesArr[0]
+      let newVariable = "x" + (greatesVariable.id + 1)
+      console.log(newVariable)
+      let variables = [...tmpSet, newVariable]
+      setVariableInUse(variables)
+    }
+
     if (nextState === "action-rule") {
       setButtonsName(modalConfig[nextState][_problemName]['buttonsName'])
     }
     else if (nextState === "state") {
       setButtonsName(modalConfig[nextState][problemName]['buttonsName'])
+    }
+    else if (nextState === "variable") {
+      console.log(variableInUse)
+      setButtonsName(variableInUse)
     }
     else {
       setButtonsName(modalConfig[nextState]['buttonsName'])
@@ -47,9 +68,21 @@ function Modal() {
               <div className="row justify-content-center">
                 <div className="btn-group" role="group" aria-label="Basic outlined example">
                   {buttonsName.map((buttonName) => {
-                    return (
-                      <button type="button" key={buttonName} id={buttonName} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
-                    )
+                    if (state === "logic_connector" && buttonName === "I'm done") {
+                      return (
+                        <button type="button" key={buttonName} id={buttonName} data-bs-dismiss="modal" className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
+                      )
+                    }
+                    else if (state === "variable") {
+                      return (
+                        <button type="button" key={buttonName.id} id={buttonName.id} data-bs-dismiss="modal" className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName.name}</button>
+                      )
+                    }
+                    else {
+                      return (
+                        <button type="button" key={buttonName} id={buttonName} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName}</button>
+                      )
+                    }
                   })}
                 </div>
               </div>
@@ -67,4 +100,4 @@ function Modal() {
 
 export default Modal;
 
-//react cycle: choose problem -> choose variable -> choose operator -> choose state -> continue? -> choose variable -> ... 
+//react cycle: choose problem -> choose variable -> choose operator -> choose state -> logic connector? -> choose variable -> ... 
