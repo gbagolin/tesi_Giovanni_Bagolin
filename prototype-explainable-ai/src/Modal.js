@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import modalConfig from './modalConfig.js'
 
 function Variable(id, str) {
-    this.id = id
-    this.name = str
+  this.id = id
+  this.name = str
 }
 
 function Modal() {
@@ -13,8 +13,10 @@ function Modal() {
   const [problemName, setProblemName] = useState("")
   const [modelTitle, setModelTitle] = useState(modalConfig['problem-type'].title);
   const [buttonsName, setButtonsName] = useState(modalConfig['problem-type'].buttonsName);
-  // const [variableInUse, setVariableInUse] = useState([...modalConfig['variable']['buttonsName']])
-  const [variableInUse, setVariableInUse] = useState([JSON.stringify(new Variable(1, modalConfig['variable']['buttonsName']))])
+  const firstVariable = new Variable(1, modalConfig['variable']['buttonsName'])
+  const [variableInUse, setVariableInUse] = useState([firstVariable])
+  const [variableUsed, setVariableUsed] = useState(new Set())
+
 
   function goToNextState(id) {
     const nextState = modalConfig[state]['next']
@@ -29,14 +31,14 @@ function Modal() {
     setModelTitle(modalConfig[nextState]['title'])
 
     if (state === "variable") {
-      const tmpSet = new Set(variableInUse).add(JSON.stringify(new Variable(parseInt(id),"x" + id)))
-      let variablesArr = [...tmpSet].sort((a,b) => b.id - a.id)
-      console.log(variablesArr)
-      let greatesVariable = variablesArr[0]
-      let newVariable = "x" + (greatesVariable.id + 1)
-      console.log(newVariable)
-      let variables = [...tmpSet, newVariable]
-      setVariableInUse(variables)
+      if (!variableUsed.has(id)) {
+        variableUsed.add(id)
+        const tmpVariables = variableInUse.sort((a, b) => b.id - a.id)
+        const idNewVariable = tmpVariables[0].id + 1
+        const stringNewVariable = "x" + idNewVariable
+        const newVariable = new Variable(idNewVariable, stringNewVariable)
+        setVariableInUse([...variableInUse, newVariable].sort((a,b) => a.id - b.id))
+      }
     }
 
     if (nextState === "action-rule") {
@@ -46,7 +48,6 @@ function Modal() {
       setButtonsName(modalConfig[nextState][problemName]['buttonsName'])
     }
     else if (nextState === "variable") {
-      console.log(variableInUse)
       setButtonsName(variableInUse)
     }
     else {
@@ -75,7 +76,7 @@ function Modal() {
                     }
                     else if (state === "variable") {
                       return (
-                        <button type="button" key={buttonName.id} id={buttonName.id} data-bs-dismiss="modal" className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName.name}</button>
+                        <button type="button" key={buttonName.id} id={buttonName.id} className="btn btn-outline-primary btn-lg btn-block" onClick={event => goToNextState(event.target.id)}>{buttonName.name}</button>
                       )
                     }
                     else {

@@ -1,0 +1,24 @@
+{
+    "atomic_rule": {
+        "problem": "tiger",
+        "action": "listen",
+        "variables": [
+            "x1",
+            "x2"
+        ],
+        "constraints": [
+            {
+                "variable": "x1",
+                "operator": "<=",
+                "state": "tiger_left",
+                "connector": "and"
+            },
+            {
+                "variable": "x2",
+                "operator": ">=",
+                "state": "tiger_right",
+                "connector": ""
+            }
+        ]
+    }
+}

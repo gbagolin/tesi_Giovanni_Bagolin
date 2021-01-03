@@ -1,6 +1,5 @@
 import './App.css';
-import React, { useState } from 'react';
-import Navbar from './Navbar'
+import React from 'react';
 import Title from './Title'
 import Button from './Button'
 import Modal from './Modal'
