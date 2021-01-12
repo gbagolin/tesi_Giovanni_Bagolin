@@ -28,23 +28,22 @@ if __name__ == "__main__":
 
     rule1 = AtomicRule(actions = ["open left"], problem = problem)
     x1 = rule1.declareVariable('x1')
-    rule1.addConstraint(x1 >= tiger_right.get_probability())
+    rule1.addConstraint([x1 >= tiger_right.get_probability()])
     #rule.solve()
     
     rule2 = AtomicRule(actions = ["open right"], problem = problem)
     x2 = rule2.declareVariable('x2')
-    rule2.addConstraint(x2 >= tiger_left.get_probability())
+    rule2.addConstraint([x2 >= tiger_left.get_probability()])
     #rule.solve()
     
     rule3 = AtomicRule(actions = ["listen"], problem = problem)
     x3 = rule3.declareVariable('x3')
     x4 = rule3.declareVariable('x4')
-    rule3.addConstraint(x3 <= tiger_left.get_probability(), x4 <= tiger_right.get_probability())
+    rule3.addConstraint([x3 <= tiger_left.get_probability(), x4 <= tiger_right.get_probability()])
     
     final_rule = RuleTemplate([rule1,rule2,rule3], problem = problem,threshold = 0.10)
-    final_rule.add_constraint(x3 == x4, x1 == x2,x1 >= 0.90)
+    final_rule.add_constraint([x3 == x4, x1 == x2,x1 >= 0.90])
     final_rule.solve()
-    
     
     # easy = State(0)
     # intermediate = State(1)
